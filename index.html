@@ -421,11 +421,11 @@
           </div>
         </div>
 
-        <!-- 7. Deudas Vigentes (Panel Directo) -->
+        <!-- 7. Deudas Vigentes (Panel Directo Multi-Moneda) -->
         <div class="card">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
             <h3 style="margin-bottom: 0;">7. Deudas Vigentes 💳</h3>
-            <span id="total-deuda-badge" style="background: #ffe4e6; color: #9f1239; font-size: 0.85rem; font-weight: 700; padding: 0.3rem 0.6rem; border-radius: 6px;">Total: $0</span>
+            <span id="total-deuda-badge" style="background: #ffe4e6; color: #9f1239; font-size: 0.82rem; font-weight: 700; padding: 0.3rem 0.6rem; border-radius: 6px;">Total: $0</span>
           </div>
           <div id="contenedor-deudas" style="max-height: 210px; overflow-y: auto; padding-right: 0.3rem;">
             <!-- Se genera dinámicamente con JS -->
@@ -778,9 +778,15 @@
         const cat = item.categoria || 'Varios';
         const amb = item.ambito || 'Casa';
         const fij = item.fijeza || 'Variable';
+        const itemMoneda = item.moneda || 'ARS';
 
         if (tipo === 'deuda' || amb === 'Deuda') {
-          deudasMap[item.concepto] = (deudasMap[item.concepto] || 0) + monto;
+          // Agrupamos deudas por combinación de concepto y moneda
+          const key = `${item.concepto}___${itemMoneda}`;
+          if (!deudasMap[key]) {
+            deudasMap[key] = { concepto: item.concepto, moneda: itemMoneda, monto: 0 };
+          }
+          deudasMap[key].monto += monto;
         } else if (tipo === 'ingreso') {
           ingresosTotales += monto;
           ingresosPorRubro[cat] = (ingresosPorRubro[cat] || 0) + monto;
@@ -847,7 +853,7 @@
       renderChart('chartEstudio', 'pie', Object.keys(gastosEstudioCat), Object.values(gastosEstudioCat), ['#06b6d4', '#0284c7', '#3b82f6', '#6366f1', '#8b5cf6'], currCode);
       renderChart('chartFijoVariable', 'doughnut', ['Gastos Fijos', 'Gastos Variables'], [gastosFijoVarCombined.Fijo, gastosFijoVarCombined.Variable], ['#ef4444', '#6366f1'], currCode);
       
-      // Renderizar Panel de Deudas Vigentes
+      // Renderizar Panel de Deudas Vigentes con soporte multi-moneda
       renderPanelDeudas(deudasMap, currCode);
 
       renderChart('chartPortafolioInversiones', 'pie', Object.keys(inversionesCat), Object.values(inversionesCat), ['#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899'], currCode);
@@ -946,10 +952,11 @@
 
       contenedor.innerHTML = '';
 
-      const conceptos = Object.keys(deudasMap);
-      let totalDeuda = 0;
+      const items = Object.values(deudasMap);
+      let totalARS = 0;
+      let totalUSD = 0;
 
-      if (conceptos.length === 0) {
+      if (items.length === 0) {
         contenedor.innerHTML = '<p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 1.5rem 0;">No hay deudas registradas en este período. 🎉</p>';
         badgeTotal.textContent = `Total: ${formatearMonto(0, currCode)}`;
         return;
@@ -958,22 +965,39 @@
       const ul = document.createElement('ul');
       ul.style.listStyle = 'none';
 
-      conceptos.forEach(concepto => {
-        const monto = deudasMap[concepto] || 0;
-        totalDeuda += monto;
+      items.forEach(item => {
+        if (item.moneda === 'USD') {
+          totalUSD += item.monto;
+        } else {
+          totalARS += item.monto;
+        }
 
         const li = document.createElement('li');
         li.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px dashed var(--border); font-size: 0.88rem;';
         
         li.innerHTML = `
-          <span style="font-weight: 600; color: var(--text);">${concepto}</span>
-          <span style="font-weight: 700; color: var(--deuda);">${formatearMonto(monto, currCode)}</span>
+          <span style="font-weight: 600; color: var(--text);">
+            ${item.concepto} <span class="badge badge-moneda">${item.moneda}</span>
+          </span>
+          <span style="font-weight: 700; color: var(--deuda);">${formatearMonto(item.monto, item.moneda)}</span>
         `;
         ul.appendChild(li);
       });
 
       contenedor.appendChild(ul);
-      badgeTotal.textContent = `Total: ${formatearMonto(totalDeuda, currCode)}`;
+
+      // Formato del Badge Total superior según el filtro de moneda seleccionado
+      if (currCode === 'ARS') {
+        badgeTotal.textContent = `Total: ${formatearMonto(totalARS, 'ARS')}`;
+      } else if (currCode === 'USD') {
+        badgeTotal.textContent = `Total: ${formatearMonto(totalUSD, 'USD')}`;
+      } else {
+        // Opción "Todas las Monedas"
+        let partes = [];
+        if (totalARS > 0 || totalUSD === 0) partes.push(formatearMonto(totalARS, 'ARS'));
+        if (totalUSD > 0) partes.push(formatearMonto(totalUSD, 'USD'));
+        badgeTotal.textContent = `Total: ${partes.join(' | ')}`;
+      }
     }
 
     function renderChartEvolucion(evolucionMensual, currCode) {
