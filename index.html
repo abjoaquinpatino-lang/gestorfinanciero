@@ -299,7 +299,7 @@
               <input type="number" id="monto" step="0.01" placeholder="0.00" required>
             </div>
 
-            <!-- Campo Moneda (Presente en Todos los Ámbitos) -->
+            <!-- Campo Moneda -->
             <div class="form-group" id="group-moneda">
               <label for="moneda">Moneda</label>
               <select id="moneda">
@@ -362,7 +362,7 @@
 
       <!-- Historial Desplegable -->
       <div class="card" style="padding: 0.9rem 1.25rem;">
-        <details>
+        <details open>
           <summary>📋 Ver Historial de Movimientos del Período</summary>
           <ul id="item-list" class="item-list">
             <li style="text-align: center; color: var(--text-muted); font-size: 0.8rem; padding: 0.5rem 0;">Cargando...</li>
@@ -498,6 +498,7 @@
     const nombresMeses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
     function formatearNombreMes(keyYYYYMM) {
+      if (!keyYYYYMM || !keyYYYYMM.includes('-')) return keyYYYYMM;
       const [year, month] = keyYYYYMM.split('-');
       const monthIdx = parseInt(month, 10) - 1;
       return `${nombresMeses[monthIdx]} ${year}`;
@@ -525,7 +526,7 @@
         groupCategoria.classList.remove('hidden');
       }
 
-      // REGLA CLAVE: Sacar tipo de movimiento "Inversión" en Casa y Estudio
+      // REGLA: Sacar tipo de movimiento "Inversión" en Casa y Estudio
       if (amb === 'Casa' || amb === 'Estudio') {
         optTipoInversion.disabled = true;
         if (tipoSelect.value === 'inversion' || tipoSelect.value === 'deuda') {
@@ -734,11 +735,9 @@
       const datosFiltrados = rawDataGlobal.filter(item => {
         if (!item.fecha) return false;
 
-        // Filtro por Moneda
         const itemMoneda = item.moneda || 'ARS';
         if (mSel !== 'TODAS' && itemMoneda !== mSel) return false;
 
-        // Filtro por Período
         if (pSel === 'TODOS') return true;
         if (pSel.startsWith('ANIO_')) return item.fecha.startsWith(pSel.replace('ANIO_', ''));
         return item.fecha.startsWith(pSel);
@@ -759,6 +758,10 @@
 
       itemList.innerHTML = '';
 
+      if (datosFiltrados.length === 0) {
+        itemList.innerHTML = '<li style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 1rem 0;">No hay movimientos registrados para este filtro.</li>';
+      }
+
       datosFiltrados.forEach(item => {
         const monto = item.monto || 0;
         const tipo = item.tipo || 'gasto';
@@ -766,7 +769,6 @@
         const amb = item.ambito || 'Casa';
         const fij = item.fijeza || 'Variable';
 
-        // Ámbito Deuda
         if (tipo === 'deuda' || amb === 'Deuda') {
           deudasMap[item.concepto] = (deudasMap[item.concepto] || 0) + monto;
         } else if (tipo === 'ingreso') {
@@ -776,7 +778,6 @@
           inversionesTotales += monto;
           inversionesCat[cat] = (inversionesCat[cat] || 0) + monto;
         } else {
-          // Gastos
           gastosTotales += monto;
           
           if (amb === 'Casa' || amb === 'Estudio') {
@@ -809,7 +810,7 @@
         else evolucionMensual[mes].gastos += item.monto;
       });
 
-      // KPIs con formato de Moneda
+      // KPIs
       const balance = ingresosTotales - gastosTotales - inversionesTotales;
       const tasaAhorro = ingresosTotales > 0 ? ((inversionesTotales / ingresosTotales) * 100).toFixed(1) : 0;
       const currCode = mSel === 'TODAS' ? '' : mSel;
@@ -824,7 +825,7 @@
       document.getElementById('tasa-ahorro').textContent = `${tasaAhorro}%`;
 
       // ===================================================
-      // RENDERIZADO DE GRÁFICOS (ORDEN 1 AL 8)
+      // RENDERIZADO DE GRÁFICOS (RESET GARANTIZADO SI ESTÁ VACÍO)
       // ===================================================
 
       renderChart('chartEgresosIngresos', 'bar', ['Ingresos Totales', 'Egresos Totales'], [ingresosTotales, gastosTotales], ['#10b981', '#ef4444'], currCode);
@@ -836,6 +837,7 @@
       renderChart('chartDeuda', 'bar', Object.keys(deudasMap), Object.values(deudasMap), ['#e11d48', '#f43f5e', '#fb7185', '#fda4af'], currCode);
       renderChart('chartPortafolioInversiones', 'pie', Object.keys(inversionesCat), Object.values(inversionesCat), ['#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899'], currCode);
 
+      // Evolución Mensual (Limpia correctamente si no hay datos)
       renderChartEvolucion(evolucionMensual, currCode);
     }
 
@@ -888,13 +890,15 @@
       const ctx = document.getElementById(canvasId).getContext('2d');
       if (charts[canvasId]) charts[canvasId].destroy();
 
+      const tieneDatosReales = data.length > 0 && data.some(v => v > 0);
+
       charts[canvasId] = new Chart(ctx, {
         type: type,
         data: {
-          labels: labels.length ? labels : ['Sin datos'],
+          labels: tieneDatosReales ? labels : ['Sin datos'],
           datasets: [{
-            data: data.length ? data : [0],
-            backgroundColor: colors
+            data: tieneDatosReales ? data : [0],
+            backgroundColor: tieneDatosReales ? colors : ['#cbd5e1']
           }]
         },
         options: { 
@@ -923,10 +927,19 @@
       if (charts['chartEvolucion']) charts['chartEvolucion'].destroy();
 
       const meses = Object.keys(evolucionMensual).sort();
-      const labelsFormatted = meses.map(m => formatearNombreMes(m));
-      const ingresos = meses.map(m => evolucionMensual[m].ingresos);
-      const gastos = meses.map(m => evolucionMensual[m].gastos);
-      const inversiones = meses.map(m => evolucionMensual[m].inversiones);
+      
+      let labelsFormatted = meses.map(m => formatearNombreMes(m));
+      let ingresos = meses.map(m => evolucionMensual[m].ingresos);
+      let gastos = meses.map(m => evolucionMensual[m].gastos);
+      let inversiones = meses.map(m => evolucionMensual[m].inversiones);
+
+      // Si no hay datos registrados, mostramos gráfico vacío con "Sin datos"
+      if (meses.length === 0) {
+        labelsFormatted = ['Sin datos'];
+        ingresos = [0];
+        gastos = [0];
+        inversiones = [0];
+      }
 
       charts['chartEvolucion'] = new Chart(ctx, {
         type: 'bar',
