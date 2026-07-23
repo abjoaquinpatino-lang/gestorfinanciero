@@ -297,7 +297,7 @@
         <form id="transaction-form">
           <div class="form-group">
             <label for="concepto">Descripción / Detalle</label>
-            <input type="text" id="concepto" placeholder="Ej: Supermercado, Alquiler, Préstamo" required>
+            <input type="text" id="concepto" placeholder="Ej: Supermercado, Alquiler, Deuda / A percibir" required>
           </div>
           
           <div class="form-grid">
@@ -321,7 +321,7 @@
                 <option value="Casa">Casa 🏡</option>
                 <option value="Estudio">Estudio ⚖️</option>
                 <option value="Inversiones">Inversión 📈</option>
-                <option value="Deuda">Deuda / Préstamo 💳</option>
+                <option value="Deuda">Deuda / A percibir 💳</option>
               </select>
             </div>
 
@@ -431,7 +431,7 @@
         <!-- 7. Deudas Vigentes (Panel Directo Multi-Moneda con A Pagar / A Cobrar) -->
         <div class="card">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
-            <h3 style="margin-bottom: 0;">7. Deudas y Préstamos Vigentes 💳</h3>
+            <h3 style="margin-bottom: 0;">7. Deudas y A Percibir Vigentes 💳</h3>
             <span id="total-deuda-badge" style="background: #ffe4e6; color: #9f1239; font-size: 0.82rem; font-weight: 700; padding: 0.3rem 0.6rem; border-radius: 6px;">Total Neto: $0</span>
           </div>
           <div id="contenedor-deudas" style="max-height: 210px; overflow-y: auto; padding-right: 0.3rem;">
@@ -537,7 +537,7 @@
         
         tipoSelect.innerHTML = `
           <option value="deuda_pagar">🔴 Deuda a Pagar (Debo)</option>
-          <option value="deuda_cobrar">🟢 Deuda a Cobrar (Me deben)</option>
+          <option value="deuda_cobrar">🟢 Deuda a A Percibir (Me deben)</option>
         `;
         return;
       } else {
@@ -592,9 +592,9 @@
         if (ambito === 'Estudio') {
           lista = ["Honorarios Clientes"];
         } else if (ambito === 'Inversiones') {
-          lista = ["Rentas / Inversiones", "Créditos / Préstamos", "Varios"];
+          lista = ["Rentas / Inversiones", "Créditos / A percibir", "Varios"];
         } else {
-          lista = ["Sueldo / Salario", "Honorarios Clientes", "Rentas / Inversiones", "Regalos / Varios", "Créditos / Préstamos"];
+          lista = ["Sueldo / Salario", "Honorarios Clientes", "Rentas / Inversiones", "Regalos / Varios", "Créditos / A percibir"];
         }
       } else if (tipo === 'inversion' || ambito === 'Inversiones') {
         lista = ["Cedears / Acciones", "Plazo Fijo / Fondos", "Crypto", "Bienes Raíces", "Dólar / Divisas"];
@@ -925,7 +925,7 @@
 
       let fijezaBadge = item.tipo === 'gasto' ? `<span class="badge ${item.fijeza === 'Fijo' ? 'badge-fijo' : 'badge-variable'}">${item.fijeza || 'Var'}</span>` : '';
       let fuenteTxt = (item.fuente && item.fuente !== 'N/A') ? ` • ${item.fuente}` : '';
-      let ambitoLabel = esDeudaCobrar ? 'A Cobrar' : (esDeudaPagar ? 'A Pagar' : (item.ambito || 'Casa'));
+      let ambitoLabel = esDeudaCobrar ? 'A Percibir' : (esDeudaPagar ? 'A Pagar' : (item.ambito || 'Casa'));
 
       li.innerHTML = `
         <div class="item-info">
@@ -998,7 +998,7 @@
       let totalUSDNeto = 0;
 
       if (items.length === 0) {
-        contenedor.innerHTML = '<p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 1.5rem 0;">No hay deudas ni préstamos registrados en este período. 🎉</p>';
+        contenedor.innerHTML = '<p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 1.5rem 0;">No hay deudas ni registros a percibir en este período. 🎉</p>';
         badgeTotal.textContent = `Total Neto: ${formatearMonto(0, currCode)}`;
         return;
       }
@@ -1034,7 +1034,7 @@
       if (deudasCobrar.length > 0) {
         const titleCobrar = document.createElement('li');
         titleCobrar.style.cssText = 'font-size: 0.78rem; font-weight: 700; color: var(--cobrar); margin-top: 0.6rem; margin-bottom: 0.3rem; text-transform: uppercase;';
-        titleCobrar.textContent = '🟢 Préstamos / Dinero a Cobrar (Nos deben)';
+        titleCobrar.textContent = '🟢 Deuda / A Percibir (Nos deben)';
         ul.appendChild(titleCobrar);
 
         deudasCobrar.forEach(item => {
