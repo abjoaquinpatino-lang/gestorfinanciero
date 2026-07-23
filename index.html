@@ -13,10 +13,6 @@
   <!-- Chart.js para Gráficos -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <!-- FullCalendar CSS y JS -->
-  <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css' rel='stylesheet' />
-  <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
-
   <style>
     :root {
       --primary: #2563eb;
@@ -131,13 +127,6 @@
       font-weight: 600;
       cursor: pointer;
       margin-top: 0.5rem;
-    }
-
-    .btn-sm {
-      padding: 0.4rem 0.8rem;
-      font-size: 0.8rem;
-      margin-top: 0;
-      width: auto;
     }
 
     /* KPIs */
@@ -378,42 +367,6 @@
         </form>
       </div>
 
-      <!-- Calendario Interactivo Desplegable y Manual -->
-      <div class="card" style="padding: 0.9rem 1.25rem;">
-        <details id="details-calendar">
-          <summary>📅 Calendario de Vencimientos, Cobros y Recordatorios</summary>
-          
-          <!-- Formulario exclusivo para añadir eventos al calendario -->
-          <div style="margin: 1rem 0; padding: 0.9rem; background: #f8fafc; border-radius: 10px; border: 1px solid var(--border);">
-            <h4 style="font-size: 0.85rem; margin-bottom: 0.6rem; color: var(--primary);">➕ Agendar Evento en Calendario</h4>
-            <form id="calendar-event-form">
-              <div class="form-grid">
-                <div class="form-group" style="grid-column: span 2;">
-                  <label for="cal-titulo">Título / Motivo</label>
-                  <input type="text" id="cal-titulo" placeholder="Ej: Vencimiento Tarjeta Visa, Impuesto Inmobiliario, Cobro Honorarios" required>
-                </div>
-                <div class="form-group">
-                  <label for="cal-tipo">Tipo de Evento</label>
-                  <select id="cal-tipo">
-                    <option value="vencimiento">Vencimiento de Servicio / Impuesto</option>
-                    <option value="tarjeta">Tarjeta de Crédito</option>
-                    <option value="cobro">Fecha de Cobro</option>
-                    <option value="otro">Otro Recordatorio</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label for="cal-fecha">Fecha del Evento</label>
-                  <input type="date" id="cal-fecha" required>
-                </div>
-              </div>
-              <button type="submit" class="btn btn-sm" style="margin-top: 0.5rem;">Agregar al Calendario</button>
-            </form>
-          </div>
-
-          <div id="calendar" style="min-height: 450px; margin-top: 0.8rem;"></div>
-        </details>
-      </div>
-
       <!-- Historial Desplegable -->
       <div class="card" style="padding: 0.9rem 1.25rem;">
         <details open>
@@ -534,7 +487,6 @@
     const logoutBtn = document.getElementById('logout-btn');
     const userEmailDisplay = document.getElementById('user-email-display');
     const transactionForm = document.getElementById('transaction-form');
-    const calendarEventForm = document.getElementById('calendar-event-form');
     const itemList = document.getElementById('item-list');
     const filtroPeriodo = document.getElementById('filtro-periodo');
     const filtroMoneda = document.getElementById('filtro-moneda');
@@ -549,59 +501,11 @@
     const optTipoInversion = document.getElementById('opt-tipo-inversion');
     
     document.getElementById('fecha').valueAsDate = new Date();
-    document.getElementById('cal-fecha').valueAsDate = new Date();
 
     let rawDataGlobal = [];
-    let calendarEventsGlobal = [];
     let charts = {};
-    let calendar = null;
 
     const nombresMeses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-
-    // Inicializar FullCalendar con gestión de eventos manuales
-    document.addEventListener('DOMContentLoaded', function() {
-      const calendarEl = document.getElementById('calendar');
-      calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth',
-        locale: 'es',
-        headerToolbar: {
-          left: 'prev,next today',
-          center: 'title',
-          right: 'dayGridMonth,timeGridWeek'
-        },
-        height: 'auto',
-        eventClick: function(info) {
-          const eventoId = info.event.id;
-          const estadoActual = info.event.extendedProps.estado || 'pendiente';
-          const titulo = info.event.title;
-
-          const accion = prompt(
-            `Evento: "${titulo}"\nEstado actual: ${estadoActual.toUpperCase()}\n\nEscribe una opción:\n1 -> Marcar como COMPLETADO\n2 -> Mantener en PENDIENTE\n3 -> ELIMINAR evento`, 
-            "1"
-          );
-
-          if (accion === '1') {
-            db.ref(`eventosCalendario/${eventoId}`).update({ estado: 'completado' }).catch(err => alert("Error: " + err.message));
-          } else if (accion === '2') {
-            db.ref(`eventosCalendario/${eventoId}`).update({ estado: 'pendiente' }).catch(err => alert("Error: " + err.message));
-          } else if (accion === '3') {
-            if (confirm("¿Estás seguro de eliminar este evento del calendario?")) {
-              db.ref(`eventosCalendario/${eventoId}`).remove().catch(err => alert("Error: " + err.message));
-            }
-          }
-        }
-      });
-      calendar.render();
-
-      const detailsCalendar = document.getElementById('details-calendar');
-      if (detailsCalendar) {
-        detailsCalendar.addEventListener('toggle', function() {
-          if (detailsCalendar.open && calendar) {
-            setTimeout(() => { calendar.updateSize(); }, 50);
-          }
-        });
-      }
-    });
 
     function formatearNombreMes(keyYYYYMM) {
       if (!keyYYYYMM || typeof keyYYYYMM !== 'string') return '';
@@ -631,7 +535,6 @@
         groupCategoria.classList.add('hidden');
         groupFuente.classList.add('hidden');
         
-        // Modificar opciones del select de tipo para deudas
         tipoSelect.innerHTML = `
           <option value="deuda_pagar">🔴 Deuda a Pagar (Debo)</option>
           <option value="deuda_cobrar">🟢 Deuda a Cobrar (Me deben)</option>
@@ -640,7 +543,6 @@
       } else {
         groupTipo.classList.remove('hidden');
         groupCategoria.classList.remove('hidden');
-        // Restaurar opciones estándar de tipo si no es deuda
         if (tipoSelect.innerHTML.includes('deuda_pagar')) {
           tipoSelect.innerHTML = `
             <option value="gasto">Gasto</option>
@@ -723,7 +625,6 @@
         appScreen.classList.remove('hidden');
         userEmailDisplay.textContent = user.email ? user.email.split('@')[0] : 'Usuario';
         escucharMovimientos();
-        escucharEventosCalendario();
       } else {
         loginScreen.classList.remove('hidden');
         appScreen.classList.add('hidden');
@@ -755,7 +656,6 @@
       let tipoFinal = tipoSelect.value;
 
       if (amb === 'Deuda') {
-        // Asegurar tipo correcto según la selección del usuario en deudas
         tipoFinal = tipoSelect.value === 'deuda_cobrar' ? 'deuda_cobrar' : 'deuda_pagar';
       }
 
@@ -781,26 +681,6 @@
       });
     });
 
-    // Carga de eventos manuales para el calendario con control de errores
-    calendarEventForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-
-      const nuevoEventoCal = {
-        titulo: document.getElementById('cal-titulo').value,
-        tipo: document.getElementById('cal-tipo').value,
-        fecha: document.getElementById('cal-fecha').value,
-        estado: 'pendiente',
-        timestamp: firebase.database.ServerValue.TIMESTAMP
-      };
-
-      db.ref('eventosCalendario').push(nuevoEventoCal).then(() => {
-        document.getElementById('cal-titulo').value = '';
-        document.getElementById('cal-fecha').valueAsDate = new Date();
-      }).catch(err => {
-        alert("Error al guardar en el calendario de Firebase: " + err.message);
-      });
-    });
-
     function escucharMovimientos() {
       db.ref('libroMayor_v2').orderByChild('fecha').on('value', (snapshot) => {
         rawDataGlobal = [];
@@ -813,52 +693,6 @@
         procesarYRenderizar();
       }, (error) => {
         console.error("Error leyendo movimientos:", error);
-      });
-    }
-
-    function escucharEventosCalendario() {
-      db.ref('eventosCalendario').on('value', (snapshot) => {
-        calendarEventsGlobal = [];
-        if (snapshot.exists()) {
-          snapshot.forEach((child) => {
-            const ev = child.val();
-            const id = child.key;
-            
-            let colorEvent = '#2563eb';
-            let titlePrefix = '';
-            const hoyStr = new Date().toISOString().substring(0, 10);
-            const estaVencido = ev.fecha < hoyStr;
-
-            if (ev.estado === 'completado') {
-              colorEvent = '#10b981';
-              titlePrefix = '✅ ';
-            } else if (estaVencido && ev.estado === 'pendiente') {
-              colorEvent = '#e11d48';
-              titlePrefix = '⚠️ [PENDIENTE] ';
-            } else {
-              if (ev.tipo === 'cobro') colorEvent = '#059669';
-              else if (ev.tipo === 'tarjeta') colorEvent = '#8b5cf6';
-              else if (ev.tipo === 'vencimiento') colorEvent = '#f59e0b';
-            }
-
-            calendarEventsGlobal.push({
-              id: id,
-              title: `${titlePrefix}${ev.titulo}`,
-              start: ev.fecha,
-              color: colorEvent,
-              extendedProps: {
-                estado: ev.estado || 'pendiente'
-              }
-            });
-          });
-        }
-
-        if (calendar) {
-          calendar.removeAllEvents();
-          calendar.addEventSource(calendarEventsGlobal);
-        }
-      }, (error) => {
-        console.error("Error leyendo eventos de calendario:", error);
       });
     }
 
@@ -1169,7 +1003,6 @@
         return;
       }
 
-      // Separar en dos grupos: A Pagar (rojo) y A Cobrar (verde)
       const deudasPagar = items.filter(i => i.subTipo === 'pagar');
       const deudasCobrar = items.filter(i => i.subTipo === 'cobrar');
 
