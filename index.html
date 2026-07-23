@@ -13,6 +13,10 @@
   <!-- Chart.js para Gráficos -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+  <!-- FullCalendar CSS y JS -->
+  <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css' rel='stylesheet' />
+  <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
+
   <style>
     :root {
       --primary: #2563eb;
@@ -25,6 +29,7 @@
       --danger: #ef4444;
       --inversion: #f59e0b;
       --deuda: #e11d48;
+      --cobrar: #059669;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -128,6 +133,13 @@
       margin-top: 0.5rem;
     }
 
+    .btn-sm {
+      padding: 0.4rem 0.8rem;
+      font-size: 0.8rem;
+      margin-top: 0;
+      width: auto;
+    }
+
     /* KPIs */
     .summary-grid {
       display: grid;
@@ -145,7 +157,7 @@
     .summary-card span { font-size: 0.72rem; color: var(--text-muted); display: block; }
     .summary-card strong { font-size: 0.98rem; display: block; margin-top: 0.15rem; }
 
-    /* Collapsible History */
+    /* Collapsible Details */
     details summary {
       cursor: pointer;
       font-weight: 700;
@@ -192,6 +204,7 @@
     .badge-estudio { background: #e0f2fe; color: #0369a1; }
     .badge-inversion { background: #fef3c7; color: #b45309; }
     .badge-deuda { background: #ffe4e6; color: #9f1239; }
+    .badge-cobrar { background: #d1fae5; color: #065f46; }
     .badge-fijo { background: #fee2e2; color: #991b1b; }
     .badge-variable { background: #e0e7ff; color: #3730a3; }
     .badge-user { background: #f1f5f9; color: #475569; font-weight: 600; }
@@ -206,6 +219,7 @@
     .text-danger { color: var(--danger); }
     .text-inversion { color: var(--inversion); }
     .text-deuda { color: var(--deuda); }
+    .text-cobrar { color: var(--cobrar); }
     .error-msg { color: var(--danger); font-size: 0.85rem; margin-top: 0.5rem; text-align: center; }
   </style>
 </head>
@@ -254,7 +268,7 @@
               <option value="USD">Solo USD (US$)</option>
             </select>
           </div>
-          <div style="min-width: 220px;">
+          <div style="min-width: 200px;">
             <select id="filtro-periodo"></select>
           </div>
         </div>
@@ -318,7 +332,7 @@
                 <option value="Casa">Casa 🏡</option>
                 <option value="Estudio">Estudio ⚖️</option>
                 <option value="Inversiones">Inversión 📈</option>
-                <option value="Deuda">Deuda 💳</option>
+                <option value="Deuda">Deuda / Préstamo 💳</option>
               </select>
             </div>
 
@@ -364,6 +378,42 @@
         </form>
       </div>
 
+      <!-- Calendario Interactivo Desplegable y Manual -->
+      <div class="card" style="padding: 0.9rem 1.25rem;">
+        <details id="details-calendar">
+          <summary>📅 Calendario de Vencimientos, Cobros y Recordatorios</summary>
+          
+          <!-- Formulario exclusivo para añadir eventos al calendario -->
+          <div style="margin: 1rem 0; padding: 0.9rem; background: #f8fafc; border-radius: 10px; border: 1px solid var(--border);">
+            <h4 style="font-size: 0.85rem; margin-bottom: 0.6rem; color: var(--primary);">➕ Agendar Evento en Calendario</h4>
+            <form id="calendar-event-form">
+              <div class="form-grid">
+                <div class="form-group" style="grid-column: span 2;">
+                  <label for="cal-titulo">Título / Motivo</label>
+                  <input type="text" id="cal-titulo" placeholder="Ej: Vencimiento Tarjeta Visa, Impuesto Inmobiliario, Cobro Honorarios" required>
+                </div>
+                <div class="form-group">
+                  <label for="cal-tipo">Tipo de Evento</label>
+                  <select id="cal-tipo">
+                    <option value="vencimiento">Vencimiento de Servicio / Impuesto</option>
+                    <option value="tarjeta">Tarjeta de Crédito</option>
+                    <option value="cobro">Fecha de Cobro</option>
+                    <option value="otro">Otro Recordatorio</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="cal-fecha">Fecha del Evento</label>
+                  <input type="date" id="cal-fecha" required>
+                </div>
+              </div>
+              <button type="submit" class="btn btn-sm" style="margin-top: 0.5rem;">Agregar al Calendario</button>
+            </form>
+          </div>
+
+          <div id="calendar" style="min-height: 450px; margin-top: 0.8rem;"></div>
+        </details>
+      </div>
+
       <!-- Historial Desplegable -->
       <div class="card" style="padding: 0.9rem 1.25rem;">
         <details open>
@@ -374,7 +424,7 @@
         </details>
       </div>
 
-      <!-- PANEL DE GRÁFICOS Y DEUDAS (ORDEN 1 AL 8) -->
+      <!-- PANEL DE GRÁFICOS Y DEUDAS -->
       <div class="charts-grid">
         
         <!-- 1. Comparativa Ingresos y Egresos -->
@@ -425,11 +475,11 @@
           </div>
         </div>
 
-        <!-- 7. Deudas Vigentes (Panel Directo Multi-Moneda) -->
+        <!-- 7. Deudas Vigentes (Panel Directo Multi-Moneda con A Pagar / A Cobrar) -->
         <div class="card">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
-            <h3 style="margin-bottom: 0;">7. Deudas Vigentes 💳</h3>
-            <span id="total-deuda-badge" style="background: #ffe4e6; color: #9f1239; font-size: 0.82rem; font-weight: 700; padding: 0.3rem 0.6rem; border-radius: 6px;">Total: $0</span>
+            <h3 style="margin-bottom: 0;">7. Deudas y Préstamos Vigentes 💳</h3>
+            <span id="total-deuda-badge" style="background: #ffe4e6; color: #9f1239; font-size: 0.82rem; font-weight: 700; padding: 0.3rem 0.6rem; border-radius: 6px;">Total Neto: $0</span>
           </div>
           <div id="contenedor-deudas" style="max-height: 210px; overflow-y: auto; padding-right: 0.3rem;">
             <!-- Se genera dinámicamente con JS -->
@@ -484,6 +534,7 @@
     const logoutBtn = document.getElementById('logout-btn');
     const userEmailDisplay = document.getElementById('user-email-display');
     const transactionForm = document.getElementById('transaction-form');
+    const calendarEventForm = document.getElementById('calendar-event-form');
     const itemList = document.getElementById('item-list');
     const filtroPeriodo = document.getElementById('filtro-periodo');
     const filtroMoneda = document.getElementById('filtro-moneda');
@@ -498,11 +549,59 @@
     const optTipoInversion = document.getElementById('opt-tipo-inversion');
     
     document.getElementById('fecha').valueAsDate = new Date();
+    document.getElementById('cal-fecha').valueAsDate = new Date();
 
     let rawDataGlobal = [];
+    let calendarEventsGlobal = [];
     let charts = {};
+    let calendar = null;
 
     const nombresMeses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+
+    // Inicializar FullCalendar con gestión de eventos manuales
+    document.addEventListener('DOMContentLoaded', function() {
+      const calendarEl = document.getElementById('calendar');
+      calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        locale: 'es',
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: 'dayGridMonth,timeGridWeek'
+        },
+        height: 'auto',
+        eventClick: function(info) {
+          const eventoId = info.event.id;
+          const estadoActual = info.event.extendedProps.estado || 'pendiente';
+          const titulo = info.event.title;
+
+          const accion = prompt(
+            `Evento: "${titulo}"\nEstado actual: ${estadoActual.toUpperCase()}\n\nEscribe una opción:\n1 -> Marcar como COMPLETADO\n2 -> Mantener en PENDIENTE\n3 -> ELIMINAR evento`, 
+            "1"
+          );
+
+          if (accion === '1') {
+            db.ref(`eventosCalendario/${eventoId}`).update({ estado: 'completado' }).catch(err => alert("Error: " + err.message));
+          } else if (accion === '2') {
+            db.ref(`eventosCalendario/${eventoId}`).update({ estado: 'pendiente' }).catch(err => alert("Error: " + err.message));
+          } else if (accion === '3') {
+            if (confirm("¿Estás seguro de eliminar este evento del calendario?")) {
+              db.ref(`eventosCalendario/${eventoId}`).remove().catch(err => alert("Error: " + err.message));
+            }
+          }
+        }
+      });
+      calendar.render();
+
+      const detailsCalendar = document.getElementById('details-calendar');
+      if (detailsCalendar) {
+        detailsCalendar.addEventListener('toggle', function() {
+          if (detailsCalendar.open && calendar) {
+            setTimeout(() => { calendar.updateSize(); }, 50);
+          }
+        });
+      }
+    });
 
     function formatearNombreMes(keyYYYYMM) {
       if (!keyYYYYMM || typeof keyYYYYMM !== 'string') return '';
@@ -523,44 +622,54 @@
       return `${simbolo}${num.toLocaleString('es-AR')}`;
     }
 
-    // DINAMISMO Y RESTRICCIONES DEL FORMULARIO
     function sincronizarFormulario() {
       const amb = ambitoSelect.value;
 
-      // REGLA PARA ÁMBITO DEUDA: Solo Descripción, Monto, Moneda y Fecha
       if (amb === 'Deuda') {
-        groupTipo.classList.add('hidden');
+        groupTipo.classList.remove('hidden');
         groupFijeza.classList.add('hidden');
         groupCategoria.classList.add('hidden');
         groupFuente.classList.add('hidden');
-        tipoSelect.value = 'deuda';
+        
+        // Modificar opciones del select de tipo para deudas
+        tipoSelect.innerHTML = `
+          <option value="deuda_pagar">🔴 Deuda a Pagar (Debo)</option>
+          <option value="deuda_cobrar">🟢 Deuda a Cobrar (Me deben)</option>
+        `;
         return;
       } else {
         groupTipo.classList.remove('hidden');
         groupCategoria.classList.remove('hidden');
+        // Restaurar opciones estándar de tipo si no es deuda
+        if (tipoSelect.innerHTML.includes('deuda_pagar')) {
+          tipoSelect.innerHTML = `
+            <option value="gasto">Gasto</option>
+            <option value="ingreso">Ingreso</option>
+            <option value="inversion" id="opt-tipo-inversion">Inversión 📈</option>
+          `;
+        }
       }
 
-      // REGLA: Sacar tipo de movimiento "Inversión" en Casa y Estudio
       if (amb === 'Casa' || amb === 'Estudio') {
-        optTipoInversion.disabled = true;
-        if (tipoSelect.value === 'inversion' || tipoSelect.value === 'deuda') {
+        const optInv = document.getElementById('opt-tipo-inversion');
+        if (optInv) optInv.disabled = true;
+        if (tipoSelect.value === 'inversion' || tipoSelect.value === 'deuda_pagar' || tipoSelect.value === 'deuda_cobrar') {
           tipoSelect.value = 'gasto';
         }
       } else if (amb === 'Inversiones') {
-        optTipoInversion.disabled = false;
+        const optInv = document.getElementById('opt-tipo-inversion');
+        if (optInv) optInv.disabled = false;
         tipoSelect.value = 'inversion';
       }
 
       const tipoActual = tipoSelect.value;
 
-      // Ocultar Fijo/Variable si NO es Gasto
       if (tipoActual === 'gasto') {
         groupFijeza.classList.remove('hidden');
       } else {
         groupFijeza.classList.add('hidden');
       }
 
-      // Ocultar Fuente de Pago en Inversiones
       if (tipoActual === 'inversion' || amb === 'Inversiones') {
         groupFuente.classList.add('hidden');
       } else {
@@ -614,6 +723,7 @@
         appScreen.classList.remove('hidden');
         userEmailDisplay.textContent = user.email ? user.email.split('@')[0] : 'Usuario';
         escucharMovimientos();
+        escucharEventosCalendario();
       } else {
         loginScreen.classList.remove('hidden');
         appScreen.classList.add('hidden');
@@ -642,17 +752,22 @@
       e.preventDefault();
 
       const amb = ambitoSelect.value;
-      const tipo = (amb === 'Deuda') ? 'deuda' : tipoSelect.value;
+      let tipoFinal = tipoSelect.value;
+
+      if (amb === 'Deuda') {
+        // Asegurar tipo correcto según la selección del usuario en deudas
+        tipoFinal = tipoSelect.value === 'deuda_cobrar' ? 'deuda_cobrar' : 'deuda_pagar';
+      }
 
       const nuevoMovimiento = {
         concepto: document.getElementById('concepto').value,
         monto: parseFloat(document.getElementById('monto').value),
         moneda: monedaSelect.value || 'ARS',
-        tipo: tipo,
+        tipo: tipoFinal,
         ambito: amb,
         categoria: (amb === 'Deuda') ? 'Deuda' : categoriaSelect.value,
-        fijeza: (tipo === 'gasto' && amb !== 'Deuda') ? document.getElementById('fijeza').value : 'N/A',
-        fuente: (tipo !== 'inversion' && amb !== 'Inversiones' && amb !== 'Deuda') ? document.getElementById('fuente').value : 'N/A',
+        fijeza: (tipoFinal === 'gasto' && amb !== 'Deuda') ? document.getElementById('fijeza').value : 'N/A',
+        fuente: (tipoFinal !== 'inversion' && amb !== 'Inversiones' && amb !== 'Deuda') ? document.getElementById('fuente').value : 'N/A',
         fecha: document.getElementById('fecha').value,
         usuario: auth.currentUser ? auth.currentUser.email : 'Anónimo',
         timestamp: firebase.database.ServerValue.TIMESTAMP
@@ -661,6 +776,28 @@
       db.ref('libroMayor_v2').push(nuevoMovimiento).then(() => {
         document.getElementById('concepto').value = '';
         document.getElementById('monto').value = '';
+      }).catch(err => {
+        alert("Error al guardar movimiento: " + err.message);
+      });
+    });
+
+    // Carga de eventos manuales para el calendario con control de errores
+    calendarEventForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const nuevoEventoCal = {
+        titulo: document.getElementById('cal-titulo').value,
+        tipo: document.getElementById('cal-tipo').value,
+        fecha: document.getElementById('cal-fecha').value,
+        estado: 'pendiente',
+        timestamp: firebase.database.ServerValue.TIMESTAMP
+      };
+
+      db.ref('eventosCalendario').push(nuevoEventoCal).then(() => {
+        document.getElementById('cal-titulo').value = '';
+        document.getElementById('cal-fecha').valueAsDate = new Date();
+      }).catch(err => {
+        alert("Error al guardar en el calendario de Firebase: " + err.message);
       });
     });
 
@@ -674,6 +811,54 @@
         }
         poblarFiltroPeriodos();
         procesarYRenderizar();
+      }, (error) => {
+        console.error("Error leyendo movimientos:", error);
+      });
+    }
+
+    function escucharEventosCalendario() {
+      db.ref('eventosCalendario').on('value', (snapshot) => {
+        calendarEventsGlobal = [];
+        if (snapshot.exists()) {
+          snapshot.forEach((child) => {
+            const ev = child.val();
+            const id = child.key;
+            
+            let colorEvent = '#2563eb';
+            let titlePrefix = '';
+            const hoyStr = new Date().toISOString().substring(0, 10);
+            const estaVencido = ev.fecha < hoyStr;
+
+            if (ev.estado === 'completado') {
+              colorEvent = '#10b981';
+              titlePrefix = '✅ ';
+            } else if (estaVencido && ev.estado === 'pendiente') {
+              colorEvent = '#e11d48';
+              titlePrefix = '⚠️ [PENDIENTE] ';
+            } else {
+              if (ev.tipo === 'cobro') colorEvent = '#059669';
+              else if (ev.tipo === 'tarjeta') colorEvent = '#8b5cf6';
+              else if (ev.tipo === 'vencimiento') colorEvent = '#f59e0b';
+            }
+
+            calendarEventsGlobal.push({
+              id: id,
+              title: `${titlePrefix}${ev.titulo}`,
+              start: ev.fecha,
+              color: colorEvent,
+              extendedProps: {
+                estado: ev.estado || 'pendiente'
+              }
+            });
+          });
+        }
+
+        if (calendar) {
+          calendar.removeAllEvents();
+          calendar.addEventSource(calendarEventsGlobal);
+        }
+      }, (error) => {
+        console.error("Error leyendo eventos de calendario:", error);
       });
     }
 
@@ -782,13 +967,12 @@
         const cat = item.categoria || 'Varios';
         const amb = item.ambito || 'Casa';
         const fij = item.fijeza || 'Variable';
-        const itemMoneda = item.moneda || 'ARS';
 
-        if (tipo === 'deuda' || amb === 'Deuda') {
-          // Agrupamos deudas por combinación de concepto y moneda
-          const key = `${item.concepto}___${itemMoneda}`;
+        if (tipo === 'deuda' || tipo === 'deuda_pagar' || tipo === 'deuda_cobrar' || amb === 'Deuda') {
+          const subTipo = tipo === 'deuda_cobrar' ? 'cobrar' : 'pagar';
+          const key = `${item.concepto}___${item.moneda || 'ARS'}___${subTipo}`;
           if (!deudasMap[key]) {
-            deudasMap[key] = { concepto: item.concepto, moneda: itemMoneda, monto: 0 };
+            deudasMap[key] = { concepto: item.concepto, moneda: item.moneda || 'ARS', subTipo: subTipo, monto: 0 };
           }
           deudasMap[key].monto += monto;
         } else if (tipo === 'ingreso') {
@@ -816,9 +1000,8 @@
         renderItemHistorial(item);
       });
 
-      // Evolución Histórica
       rawDataGlobal.forEach(item => {
-        if (item.tipo === 'deuda' || item.ambito === 'Deuda') return;
+        if (item.tipo === 'deuda' || item.tipo === 'deuda_pagar' || item.tipo === 'deuda_cobrar' || item.ambito === 'Deuda') return;
         const itemMoneda = item.moneda || 'ARS';
         if (mSel !== 'TODAS' && itemMoneda !== mSel) return;
 
@@ -832,7 +1015,6 @@
         else evolucionMensual[mes].gastos += item.monto;
       });
 
-      // KPIs
       const balance = ingresosTotales - gastosTotales - inversionesTotales;
       const tasaAhorro = ingresosTotales > 0 ? ((inversionesTotales / ingresosTotales) * 100).toFixed(1) : 0;
       const currCode = mSel === 'TODAS' ? '' : mSel;
@@ -846,30 +1028,27 @@
       balEl.className = balance < 0 ? 'text-danger' : 'text-success';
       document.getElementById('tasa-ahorro').textContent = `${tasaAhorro}%`;
 
-      // Cálculo e integración del KPI de Deudas Pendientes
-      let totalARSDeuda = 0;
-      let totalUSDDeuda = 0;
+      let totalARSDeudaPagar = 0;
+      let totalUSDDeudaPagar = 0;
 
       Object.values(deudasMap).forEach(d => {
-        if (d.moneda === 'USD') totalUSDDeuda += d.monto;
-        else totalARSDeuda += d.monto;
+        if (d.subTipo === 'pagar') {
+          if (d.moneda === 'USD') totalUSDDeudaPagar += d.monto;
+          else totalARSDeudaPagar += d.monto;
+        }
       });
 
       const kpiDeudasEl = document.getElementById('kpi-deudas');
       if (mSel === 'ARS') {
-        kpiDeudasEl.textContent = formatearMonto(totalARSDeuda, 'ARS');
+        kpiDeudasEl.textContent = formatearMonto(totalARSDeudaPagar, 'ARS');
       } else if (mSel === 'USD') {
-        kpiDeudasEl.textContent = formatearMonto(totalUSDDeuda, 'USD');
+        kpiDeudasEl.textContent = formatearMonto(totalUSDDeudaPagar, 'USD');
       } else {
         let partes = [];
-        if (totalARSDeuda > 0 || totalUSDDeuda === 0) partes.push(formatearMonto(totalARSDeuda, 'ARS'));
-        if (totalUSDDeuda > 0) partes.push(formatearMonto(totalUSDDeuda, 'USD'));
+        if (totalARSDeudaPagar > 0 || totalUSDDeudaPagar === 0) partes.push(formatearMonto(totalARSDeudaPagar, 'ARS'));
+        if (totalUSDDeudaPagar > 0) partes.push(formatearMonto(totalUSDDeudaPagar, 'USD'));
         kpiDeudasEl.textContent = partes.join(' | ');
       }
-
-      // ===================================================
-      // RENDERIZADO DE GRÁFICOS Y PANEL DE DEUDAS
-      // ===================================================
 
       renderChart('chartEgresosIngresos', 'bar', ['Ingresos Totales', 'Egresos Totales'], [ingresosTotales, gastosTotales], ['#10b981', '#ef4444'], currCode);
       renderChart('chartIngresos', 'doughnut', Object.keys(ingresosPorRubro), Object.values(ingresosPorRubro), ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#06b6d4', '#ec4899'], currCode);
@@ -878,12 +1057,8 @@
       renderChart('chartEstudio', 'pie', Object.keys(gastosEstudioCat), Object.values(gastosEstudioCat), ['#06b6d4', '#0284c7', '#3b82f6', '#6366f1', '#8b5cf6'], currCode);
       renderChart('chartFijoVariable', 'doughnut', ['Gastos Fijos', 'Gastos Variables'], [gastosFijoVarCombined.Fijo, gastosFijoVarCombined.Variable], ['#ef4444', '#6366f1'], currCode);
       
-      // Renderizar Panel de Deudas Vigentes con soporte multi-moneda
       renderPanelDeudas(deudasMap, currCode);
-
       renderChart('chartPortafolioInversiones', 'pie', Object.keys(inversionesCat), Object.values(inversionesCat), ['#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899'], currCode);
-
-      // Evolución Mensual
       renderChartEvolucion(evolucionMensual, currCode);
     }
 
@@ -892,30 +1067,35 @@
       li.className = 'item';
       
       let badgeClass = 'badge-casa';
+      let esDeudaCobrar = item.tipo === 'deuda_cobrar';
+      let esDeudaPagar = item.tipo === 'deuda' || item.tipo === 'deuda_pagar' || item.ambito === 'Deuda';
+
       if (item.ambito === 'Estudio') badgeClass = 'badge-estudio';
       else if (item.ambito === 'Inversiones') badgeClass = 'badge-inversion';
-      else if (item.ambito === 'Deuda' || item.tipo === 'deuda') badgeClass = 'badge-deuda';
+      else if (esDeudaCobrar) badgeClass = 'badge-cobrar';
+      else if (esDeudaPagar) badgeClass = 'badge-deuda';
 
       let esIngreso = item.tipo === 'ingreso';
       let esInversion = item.tipo === 'inversion' || item.ambito === 'Inversiones';
-      let esDeuda = item.tipo === 'deuda' || item.ambito === 'Deuda';
 
       let colorClass = 'text-danger';
       let signo = '-';
 
       if (esIngreso) { colorClass = 'text-success'; signo = '+'; }
       else if (esInversion) { colorClass = 'text-inversion'; signo = '📈 '; }
-      else if (esDeuda) { colorClass = 'text-deuda'; signo = '💳 '; }
+      else if (esDeudaCobrar) { colorClass = 'text-cobrar'; signo = '🟢 '; }
+      else if (esDeudaPagar) { colorClass = 'text-deuda'; signo = '🔴 '; }
 
       let userTag = item.usuario ? item.usuario.split('@')[0] : 'S/D';
       let monedaTag = item.moneda || 'ARS';
 
       let fijezaBadge = item.tipo === 'gasto' ? `<span class="badge ${item.fijeza === 'Fijo' ? 'badge-fijo' : 'badge-variable'}">${item.fijeza || 'Var'}</span>` : '';
       let fuenteTxt = (item.fuente && item.fuente !== 'N/A') ? ` • ${item.fuente}` : '';
+      let ambitoLabel = esDeudaCobrar ? 'A Cobrar' : (esDeudaPagar ? 'A Pagar' : (item.ambito || 'Casa'));
 
       li.innerHTML = `
         <div class="item-info">
-          <p>${item.concepto} <span class="badge ${badgeClass}">${item.ambito || 'Casa'}</span> <span class="badge badge-moneda">${monedaTag}</span> ${fijezaBadge}</p>
+          <p>${item.concepto} <span class="badge ${badgeClass}">${ambitoLabel}</span> <span class="badge badge-moneda">${monedaTag}</span> ${fijezaBadge}</p>
           <small>👤 <strong class="badge badge-user">${userTag}</strong> • ${item.fecha} • ${item.categoria || 'Varios'}${fuenteTxt}</small>
         </div>
         <div>
@@ -929,7 +1109,9 @@
     }
 
     window.eliminarMovimiento = (id) => {
-      if (confirm("¿Borrar este movimiento?")) db.ref(`libroMayor_v2/${id}`).remove();
+      if (confirm("¿Borrar este movimiento?")) {
+        db.ref(`libroMayor_v2/${id}`).remove().catch(err => alert("Error al borrar: " + err.message));
+      }
     };
 
     function renderChart(canvasId, type, labels, data, colors, currCode) {
@@ -978,49 +1160,79 @@
       contenedor.innerHTML = '';
 
       const items = Object.values(deudasMap);
-      let totalARS = 0;
-      let totalUSD = 0;
+      let totalARSNeto = 0;
+      let totalUSDNeto = 0;
 
       if (items.length === 0) {
-        contenedor.innerHTML = '<p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 1.5rem 0;">No hay deudas registradas en este período. 🎉</p>';
-        badgeTotal.textContent = `Total: ${formatearMonto(0, currCode)}`;
+        contenedor.innerHTML = '<p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 1.5rem 0;">No hay deudas ni préstamos registrados en este período. 🎉</p>';
+        badgeTotal.textContent = `Total Neto: ${formatearMonto(0, currCode)}`;
         return;
       }
+
+      // Separar en dos grupos: A Pagar (rojo) y A Cobrar (verde)
+      const deudasPagar = items.filter(i => i.subTipo === 'pagar');
+      const deudasCobrar = items.filter(i => i.subTipo === 'cobrar');
 
       const ul = document.createElement('ul');
       ul.style.listStyle = 'none';
 
-      items.forEach(item => {
-        if (item.moneda === 'USD') {
-          totalUSD += item.monto;
-        } else {
-          totalARS += item.monto;
-        }
+      if (deudasPagar.length > 0) {
+        const titlePagar = document.createElement('li');
+        titlePagar.style.cssText = 'font-size: 0.78rem; font-weight: 700; color: var(--deuda); margin-top: 0.2rem; margin-bottom: 0.3rem; text-transform: uppercase;';
+        titlePagar.textContent = '🔴 Deudas a Pagar (Debo)';
+        ul.appendChild(titlePagar);
 
-        const li = document.createElement('li');
-        li.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px dashed var(--border); font-size: 0.88rem;';
-        
-        li.innerHTML = `
-          <span style="font-weight: 600; color: var(--text);">
-            ${item.concepto} <span class="badge badge-moneda">${item.moneda}</span>
-          </span>
-          <span style="font-weight: 700; color: var(--deuda);">${formatearMonto(item.monto, item.moneda)}</span>
-        `;
-        ul.appendChild(li);
-      });
+        deudasPagar.forEach(item => {
+          if (item.moneda === 'USD') totalUSDNeto -= item.monto;
+          else totalARSNeto -= item.monto;
+
+          const li = document.createElement('li');
+          li.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0; border-bottom: 1px dashed var(--border); font-size: 0.85rem;';
+          li.innerHTML = `
+            <span style="font-weight: 600; color: var(--text);">
+              ${item.concepto} <span class="badge badge-moneda">${item.moneda}</span>
+            </span>
+            <span style="font-weight: 700; color: var(--deuda);">-${formatearMonto(item.monto, item.moneda)}</span>
+          `;
+          ul.appendChild(li);
+        });
+      }
+
+      if (deudasCobrar.length > 0) {
+        const titleCobrar = document.createElement('li');
+        titleCobrar.style.cssText = 'font-size: 0.78rem; font-weight: 700; color: var(--cobrar); margin-top: 0.6rem; margin-bottom: 0.3rem; text-transform: uppercase;';
+        titleCobrar.textContent = '🟢 Préstamos / Dinero a Cobrar (Nos deben)';
+        ul.appendChild(titleCobrar);
+
+        deudasCobrar.forEach(item => {
+          if (item.moneda === 'USD') totalUSDNeto += item.monto;
+          else totalARSNeto += item.monto;
+
+          const li = document.createElement('li');
+          li.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0; border-bottom: 1px dashed var(--border); font-size: 0.85rem;';
+          li.innerHTML = `
+            <span style="font-weight: 600; color: var(--text);">
+              ${item.concepto} <span class="badge badge-moneda">${item.moneda}</span>
+            </span>
+            <span style="font-weight: 700; color: var(--cobrar);">+${formatearMonto(item.monto, item.moneda)}</span>
+          `;
+          ul.appendChild(li);
+        });
+      }
 
       contenedor.appendChild(ul);
 
-      // Formato del Badge Total superior del gráfico 7
       if (currCode === 'ARS') {
-        badgeTotal.textContent = `Total: ${formatearMonto(totalARS, 'ARS')}`;
+        badgeTotal.textContent = `Neto: ${formatearMonto(totalARSNeto, 'ARS')}`;
+        badgeTotal.style.color = totalARSNeto < 0 ? 'var(--deuda)' : 'var(--cobrar)';
       } else if (currCode === 'USD') {
-        badgeTotal.textContent = `Total: ${formatearMonto(totalUSD, 'USD')}`;
+        badgeTotal.textContent = `Neto: ${formatearMonto(totalUSDNeto, 'USD')}`;
+        badgeTotal.style.color = totalUSDNeto < 0 ? 'var(--deuda)' : 'var(--cobrar)';
       } else {
         let partes = [];
-        if (totalARS > 0 || totalUSD === 0) partes.push(formatearMonto(totalARS, 'ARS'));
-        if (totalUSD > 0) partes.push(formatearMonto(totalUSD, 'USD'));
-        badgeTotal.textContent = `Total: ${partes.join(' | ')}`;
+        if (totalARSNeto !== 0 || totalUSDNeto === 0) partes.push(formatearMonto(totalARSNeto, 'ARS'));
+        if (totalUSDNeto !== 0) partes.push(formatearMonto(totalUSDNeto, 'USD'));
+        badgeTotal.textContent = `Neto: ${partes.join(' | ')}`;
       }
     }
 
