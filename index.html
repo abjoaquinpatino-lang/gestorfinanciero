@@ -186,6 +186,7 @@
     .badge-inversion { background: #fef3c7; color: #b45309; }
     .badge-fijo { background: #fee2e2; color: #991b1b; }
     .badge-variable { background: #e0e7ff; color: #3730a3; }
+    .badge-user { background: #f1f5f9; color: #475569; font-weight: 600; }
 
     .delete-btn {
       background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 0.9rem; margin-left: 0.6rem;
@@ -224,13 +225,13 @@
     <!-- DASHBOARD PRINCIPAL -->
     <div id="app-screen" class="hidden">
       
-      <!-- 1. Header de Usuario Discreto (Top) -->
+      <!-- Top User Bar -->
       <div class="top-user-bar">
         <span>Sesión: <strong id="user-email-display" style="color: var(--text);"></strong></span>
         <button id="logout-btn" class="btn-logout-tiny">Cerrar sesión</button>
       </div>
 
-      <!-- 2. Filtro Período de Análisis -->
+      <!-- Filtro Período -->
       <div class="card toolbar-filter" style="padding: 0.8rem 1.25rem;">
         <div>
           <strong style="font-size: 0.88rem;">📅 Período de Análisis:</strong>
@@ -240,10 +241,10 @@
         </div>
       </div>
 
-      <!-- 3. Indicadores Clave (KPIs) -->
+      <!-- Indicadores Clave (KPIs) -->
       <div class="summary-grid">
         <div class="summary-card">
-          <span>Ingresos</span>
+          <span>Ingresos Totales</span>
           <strong id="total-ingresos" class="text-success">$0</strong>
         </div>
         <div class="summary-card">
@@ -264,28 +265,19 @@
         </div>
       </div>
 
-      <!-- 4. Formulario Carga de Movimientos -->
+      <!-- Formulario Carga de Movimientos -->
       <div class="card">
         <h3>➕ Registrar Movimiento</h3>
         <form id="transaction-form">
           <div class="form-group">
             <label for="concepto">Descripción / Detalle</label>
-            <input type="text" id="concepto" placeholder="Ej: Honorarios Profarcor, Supermercado, Alquiler" required>
+            <input type="text" id="concepto" placeholder="Ej: Honorarios, Supermercado, Alquiler" required>
           </div>
           
           <div class="form-grid">
             <div class="form-group">
               <label for="monto">Monto ($)</label>
               <input type="number" id="monto" step="0.01" placeholder="0.00" required>
-            </div>
-
-            <div class="form-group">
-              <label for="tipo">Tipo Movimiento</label>
-              <select id="tipo">
-                <option value="gasto">Gasto</option>
-                <option value="ingreso">Ingreso</option>
-                <option value="inversion">Inversión 📈</option>
-              </select>
             </div>
 
             <div class="form-group">
@@ -298,19 +290,28 @@
             </div>
 
             <div class="form-group">
-              <label for="categoria">Categoría Específica</label>
-              <select id="categoria"></select>
+              <label for="tipo">Tipo Movimiento</label>
+              <select id="tipo">
+                <option value="gasto">Gasto</option>
+                <option value="ingreso">Ingreso</option>
+                <option value="inversion" id="opt-tipo-inversion">Inversión 📈</option>
+              </select>
             </div>
 
-            <div class="form-group">
-              <label for="fijeza">Naturaleza del Gasto</label>
+            <div class="form-group" id="group-fijeza">
+              <label for="fijeza">Tipo de Gasto</label>
               <select id="fijeza">
-                <option value="Fijo">Gasto Fijo / Estructural</option>
-                <option value="Variable">Gasto Variable / Discrecional</option>
+                <option value="Fijo">Fijo</option>
+                <option value="Variable">Variable</option>
               </select>
             </div>
 
             <div class="form-group">
+              <label for="categoria">Categoría Específica</label>
+              <select id="categoria"></select>
+            </div>
+
+            <div class="form-group" id="group-fuente">
               <label for="fuente">Fuente / Medio de Pago</label>
               <select id="fuente">
                 <option value="Banco / Transferencia">Banco / Transferencia</option>
@@ -330,9 +331,9 @@
         </form>
       </div>
 
-      <!-- 5. Historial Desplegable -->
+      <!-- Historial Desplegable -->
       <div class="card" style="padding: 0.9rem 1.25rem;">
-        <details>
+        details>
           <summary>📋 Ver Historial de Movimientos del Período</summary>
           <ul id="item-list" class="item-list">
             <li style="text-align: center; color: var(--text-muted); font-size: 0.8rem; padding: 0.5rem 0;">Cargando...</li>
@@ -340,17 +341,42 @@
         </details>
       </div>
 
-      <!-- 6. PANEL DE GRÁFICOS ANALÍTICOS -->
+      <!-- PANEL DE GRÁFICOS ANALÍTICOS -->
       <div class="charts-grid">
-        <!-- Gráfico 1: Origen de Ingresos -->
+        
+        <!-- Gráfico 1: Comparativa Egresos vs Ingresos (con discriminación de créditos) -->
         <div class="card">
-          <h3>💰 Origen de Ingresos</h3>
+          <h3>⚖️ Egresos / Ingresos (Comparativa)</h3>
+          <div class="chart-box">
+            <canvas id="chartEgresosIngresos"></canvas>
+          </div>
+        </div>
+
+        <!-- Gráfico 2: Origen de Ingresos (Discriminado por rubro) -->
+        <div class="card">
+          <h3>💰 Origen de Ingresos (Por Rubro)</h3>
           <div class="chart-box">
             <canvas id="chartIngresos"></canvas>
           </div>
         </div>
 
-        <!-- Gráfico 2: Gastos Exclusivos Casa -->
+        <!-- Gráfico 3: Gastos por Categoría Global -->
+        <div class="card">
+          <h3>🌐 Gastos por Categoría Global</h3>
+          <div class="chart-box">
+            <canvas id="chartGlobal"></canvas>
+          </div>
+        </div>
+
+        <!-- Gráfico 4: Gastos Fijos vs Variables (Casa + Estudio) -->
+        <div class="card">
+          <h3>📌 Gastos Fijos vs Variables (Casa + Estudio)</h3>
+          <div class="chart-box">
+            <canvas id="chartFijoVariable"></canvas>
+          </div>
+        </div>
+
+        <!-- Gráfico 5: Gastos Exclusivos Casa -->
         <div class="card">
           <h3>🏡 Gastos por Categoría - Casa</h3>
           <div class="chart-box">
@@ -358,7 +384,7 @@
           </div>
         </div>
 
-        <!-- Gráfico 3: Gastos Exclusivos Estudio -->
+        <!-- Gráfico 6: Gastos Exclusivos Estudio -->
         <div class="card">
           <h3>⚖️ Gastos por Categoría - Estudio</h3>
           <div class="chart-box">
@@ -366,23 +392,7 @@
           </div>
         </div>
 
-        <!-- Gráfico 4: Ponderación Total de Fugas / Egresos Globales -->
-        <div class="card">
-          <h3>💸 Ponderación Total de Fugas (Todos los Egresos)</h3>
-          <div class="chart-box">
-            <canvas id="chartFugasTotales"></canvas>
-          </div>
-        </div>
-
-        <!-- Gráfico 5: Gastos Fijos vs Variables -->
-        <div class="card">
-          <h3>📌 Estructura: Gastos Fijos vs Variables</h3>
-          <div class="chart-box">
-            <canvas id="chartFijoVariable"></canvas>
-          </div>
-        </div>
-
-        <!-- Gráfico 6: Portafolio de Inversiones -->
+        <!-- Gráfico 7: Portafolio de Inversiones -->
         <div class="card">
           <h3>📈 Portafolio de Inversiones</h3>
           <div class="chart-box">
@@ -390,13 +400,14 @@
           </div>
         </div>
 
-        <!-- Gráfico 7: Comparativa Histórica Completa -->
+        <!-- Gráfico 8: Evolución Mensual Histórica -->
         <div class="card" style="grid-column: 1 / -1;">
           <h3>📈 Evolución Mensual (Ingresos vs Gastos vs Inversiones)</h3>
           <div class="chart-box">
             <canvas id="chartEvolucion"></canvas>
           </div>
         </div>
+
       </div>
 
     </div>
@@ -434,19 +445,14 @@
     const tipoSelect = document.getElementById('tipo');
     const ambitoSelect = document.getElementById('ambito');
     const categoriaSelect = document.getElementById('categoria');
+    const groupFijeza = document.getElementById('group-fijeza');
+    const groupFuente = document.getElementById('group-fuente');
+    const optTipoInversion = document.getElementById('opt-tipo-inversion');
     
     document.getElementById('fecha').valueAsDate = new Date();
 
     let rawDataGlobal = [];
     let charts = {};
-
-    // Listas de Categorías según Contexto
-    const categoriasMap = {
-      ingreso: ["Honorarios Clientes", "Sueldo / Salario", "Rentas / Inversiones", "Regalos / Varios", "Créditos / Préstamos"],
-      casa: ["Supermercado / Alimentos", "Servicios & Impuestos Casa", "Alquiler / Expensas Casa", "Salud / Prepaga", "Vehículo / Combustible", "Ocio / Salidas / Viajes", "Mantenimiento Hogar", "Varios Casa"],
-      estudio: ["Honorarios / Colaboradores", "Alquiler / Expensas Estudio", "Matrícula / Tasas Judiciales", "Servicios & Software Estudio", "Insumos & Librería", "Viáticos & Movilidad", "Mantenimiento / Equipamiento", "Varios Estudio"],
-      inversion: ["Cedears / Acciones", "Plazo Fijo / Fondos", "Crypto", "Bienes Raíces", "Dólar / Divisas"]
-    };
 
     const nombresMeses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
@@ -456,16 +462,68 @@
       return `${nombresMeses[monthIdx]} ${year}`;
     }
 
+    // LÓGICA DE DINAMISMO Y RESTRICCIONES EN EL FORMULARIO
+    function sincronizarFormulario() {
+      const amb = ambitoSelect.value;
+      const tipo = tipoSelect.value;
+
+      // Regla: Tipo Movimiento "Inversión" SOLO para Ámbito "Inversión".
+      if (amb === 'Casa' || amb === 'Estudio') {
+        optTipoInversion.disabled = true;
+        if (tipo === 'inversion') {
+          tipoSelect.value = 'gasto';
+        }
+      } else {
+        optTipoInversion.disabled = false;
+        if (amb === 'Inversiones') {
+          tipoSelect.value = 'inversion';
+        }
+      }
+
+      const tipoActualizado = tipoSelect.value;
+
+      // Regla: Ocultar Fijo/Variable si NO es Gasto
+      if (tipoActualizado === 'gasto') {
+        groupFijeza.classList.remove('hidden');
+      } else {
+        groupFijeza.classList.add('hidden');
+      }
+
+      // Regla: Quitar Fuente de Pago en Inversiones
+      if (tipoActualizado === 'inversion' || amb === 'Inversiones') {
+        groupFuente.classList.add('hidden');
+      } else {
+        groupFuente.classList.remove('hidden');
+      }
+
+      actualizarCategoriasDropdown();
+    }
+
     function actualizarCategoriasDropdown() {
       const tipo = tipoSelect.value;
       const ambito = ambitoSelect.value;
       categoriaSelect.innerHTML = '';
 
       let lista = [];
-      if (tipo === 'ingreso') lista = categoriasMap.ingreso;
-      else if (tipo === 'inversion' || ambito === 'Inversiones') lista = categoriasMap.inversion;
-      else if (ambito === 'Estudio') lista = categoriasMap.estudio;
-      else lista = categoriasMap.casa;
+
+      if (tipo === 'ingreso') {
+        if (ambito === 'Estudio') {
+          // Regla: Ingresos de Estudio solo "Honorarios Clientes"
+          lista = ["Honorarios Clientes"];
+        } else if (ambito === 'Inversiones') {
+          lista = ["Rentas / Inversiones", "Créditos / Préstamos", "Varios"];
+        } else {
+          // Casa
+          lista = ["Sueldo / Salario", "Honorarios Clientes", "Rentas / Inversiones", "Regalos / Varios", "Créditos / Préstamos"];
+        }
+      } else if (tipo === 'inversion' || ambito === 'Inversiones') {
+        lista = ["Cedears / Acciones", "Plazo Fijo / Fondos", "Crypto", "Bienes Raíces", "Dólar / Divisas"];
+      } else if (ambito === 'Estudio') {
+        lista = ["Honorarios / Colaboradores", "Alquiler / Expensas Estudio", "Matrícula / Tasas Judiciales", "Servicios & Software Estudio", "Insumos & Librería", "Viáticos & Movilidad", "Mantenimiento / Equipamiento", "Varios Estudio"];
+      } else {
+        // Casa
+        lista = ["Supermercado / Alimentos", "Servicios & Impuestos Casa", "Alquiler / Expensas Casa", "Salud / Prepaga", "Vehículo / Combustible", "Ocio / Salidas / Viajes", "Mantenimiento Hogar", "Varios Casa"];
+      }
 
       lista.forEach(cat => {
         const opt = document.createElement('option');
@@ -475,12 +533,9 @@
       });
     }
 
-    tipoSelect.addEventListener('change', () => {
-      if (tipoSelect.value === 'inversion') ambitoSelect.value = 'Inversiones';
-      actualizarCategoriasDropdown();
-    });
-    ambitoSelect.addEventListener('change', actualizarCategoriasDropdown);
-    actualizarCategoriasDropdown();
+    ambitoSelect.addEventListener('change', sincronizarFormulario);
+    tipoSelect.addEventListener('change', sincronizarFormulario);
+    sincronizarFormulario();
 
     // ===================================================
     // 🔐 2. AUTENTICACIÓN
@@ -512,22 +567,25 @@
     logoutBtn.addEventListener('click', () => auth.signOut());
 
     // ===================================================
-    // 💾 3. BASE DE DATOS Y FILTROS
+    // 💾 3. BASE DE DATOS Y PROCESAMIENTO
     // ===================================================
 
     transactionForm.addEventListener('submit', (e) => {
       e.preventDefault();
 
+      const tipo = tipoSelect.value;
+      const amb = ambitoSelect.value;
+
       const nuevoMovimiento = {
         concepto: document.getElementById('concepto').value,
         monto: parseFloat(document.getElementById('monto').value),
-        tipo: tipoSelect.value,
-        ambito: ambitoSelect.value,
+        tipo: tipo,
+        ambito: amb,
         categoria: categoriaSelect.value,
-        fijeza: document.getElementById('fijeza').value,
-        fuente: document.getElementById('fuente').value,
+        fijeza: tipo === 'gasto' ? document.getElementById('fijeza').value : 'N/A',
+        fuente: (tipo !== 'inversion' && amb !== 'Inversiones') ? document.getElementById('fuente').value : 'N/A',
         fecha: document.getElementById('fecha').value,
-        usuario: auth.currentUser.email,
+        usuario: auth.currentUser ? auth.currentUser.email : 'Anónimo',
         timestamp: firebase.database.ServerValue.TIMESTAMP
       };
 
@@ -554,7 +612,7 @@
 
     function poblarFiltroPeriodos() {
       const hoy = new Date();
-      const mesActualKey = hoy.toISOString().substring(0, 7); // YYYY-MM
+      const mesActualKey = hoy.toISOString().substring(0, 7);
       
       const periodosMeses = new Set();
       const periodosAnios = new Set();
@@ -575,19 +633,16 @@
       const valorSeleccionadoPrevio = filtroPeriodo.value;
       filtroPeriodo.innerHTML = '';
 
-      // Opcion 1: Mes Actual
       const optActual = document.createElement('option');
       optActual.value = mesActualKey;
       optActual.textContent = `Mes Actual (${formatearNombreMes(mesActualKey)})`;
       filtroPeriodo.appendChild(optActual);
 
-      // Opcion 2: Histórico Completo
       const optTodos = document.createElement('option');
       optTodos.value = 'TODOS';
       optTodos.textContent = 'Histórico Completo (Desde siempre)';
       filtroPeriodo.appendChild(optTodos);
 
-      // Grupo Meses Anteriores Individuales
       const groupMeses = document.createElement('optgroup');
       groupMeses.label = "Meses Individuales";
       mesesOrdenados.forEach(m => {
@@ -600,7 +655,6 @@
       });
       filtroPeriodo.appendChild(groupMeses);
 
-      // Grupo Años Completos
       const groupAnios = document.createElement('optgroup');
       groupAnios.label = "Año Completo";
       aniosOrdenados.forEach(a => {
@@ -628,13 +682,15 @@
         return item.fecha.startsWith(pSel);
       });
 
-      let ingresos = 0, gastos = 0, inversiones = 0;
-      let ingresosPorFuente = {};
+      let ingresosTotales = 0, ingresosPropios = 0, ingresosCreditos = 0;
+      let gastosTotales = 0, inversionesTotales = 0;
+      
+      let ingresosPorRubro = {};
+      let gastosGlobalesCat = {};
       let gastosCasaCat = {};
       let gastosEstudioCat = {};
-      let fugasTotalesCat = {};
       let inversionesCat = {};
-      let gastosFijoVar = { Fijo: 0, Variable: 0 };
+      let gastosFijoVarCombined = { Fijo: 0, Variable: 0 };
       let evolucionMensual = {};
 
       itemList.innerHTML = '';
@@ -647,29 +703,39 @@
         const fij = item.fijeza || 'Variable';
 
         if (tipo === 'ingreso') {
-          ingresos += monto;
-          ingresosPorFuente[cat] = (ingresosPorFuente[cat] || 0) + monto;
+          ingresosTotales += monto;
+          ingresosPorRubro[cat] = (ingresosPorRubro[cat] || 0) + monto;
+
+          if (cat === 'Créditos / Préstamos') {
+            ingresosCreditos += monto;
+          } else {
+            ingresosPropios += monto;
+          }
         } else if (tipo === 'inversion' || amb === 'Inversiones') {
-          inversiones += monto;
+          inversionesTotales += monto;
           inversionesCat[cat] = (inversionesCat[cat] || 0) + monto;
         } else {
-          gastos += monto;
-          gastosFijoVar[fij] = (gastosFijoVar[fij] || 0) + monto;
+          // Gasto (Casa o Estudio)
+          gastosTotales += monto;
           
-          // Fugas Totales (Casa + Estudio)
-          fugasTotalesCat[cat] = (fugasTotalesCat[cat] || 0) + monto;
+          // Gastos fijos vs variables combinando Casa y Estudio
+          if (amb === 'Casa' || amb === 'Estudio') {
+            gastosFijoVarCombined[fij] = (gastosFijoVarCombined[fij] || 0) + monto;
+          }
 
           if (amb === 'Estudio') {
             gastosEstudioCat[cat] = (gastosEstudioCat[cat] || 0) + monto;
+            gastosGlobalesCat['Estudio ⚖️'] = (gastosGlobalesCat['Estudio ⚖️'] || 0) + monto;
           } else {
             gastosCasaCat[cat] = (gastosCasaCat[cat] || 0) + monto;
+            gastosGlobalesCat[cat] = (gastosGlobalesCat[cat] || 0) + monto;
           }
         }
 
         renderItemHistorial(item);
       });
 
-      // Evolución Histórica Completa
+      // Evolución Histórica
       rawDataGlobal.forEach(item => {
         const mes = item.fecha ? item.fecha.substring(0, 7) : 'Sin fecha';
         if (!evolucionMensual[mes]) evolucionMensual[mes] = { ingresos: 0, gastos: 0, inversiones: 0 };
@@ -680,26 +746,40 @@
       });
 
       // KPIs
-      const balance = ingresos - gastos - inversiones;
-      const tasaAhorro = ingresos > 0 ? ((inversiones / ingresos) * 100).toFixed(1) : 0;
+      const balance = ingresosTotales - gastosTotales - inversionesTotales;
+      const tasaAhorro = ingresosTotales > 0 ? ((inversionesTotales / ingresosTotales) * 100).toFixed(1) : 0;
 
-      document.getElementById('total-ingresos').textContent = `$${ingresos.toLocaleString('es-AR')}`;
-      document.getElementById('total-gastos').textContent = `$${gastos.toLocaleString('es-AR')}`;
-      document.getElementById('total-inversiones').textContent = `$${inversiones.toLocaleString('es-AR')}`;
+      document.getElementById('total-ingresos').textContent = `$${ingresosTotales.toLocaleString('es-AR')}`;
+      document.getElementById('total-gastos').textContent = `$${gastosTotales.toLocaleString('es-AR')}`;
+      document.getElementById('total-inversiones').textContent = `$${inversionesTotales.toLocaleString('es-AR')}`;
       
       const balEl = document.getElementById('total-balance');
       balEl.textContent = `$${balance.toLocaleString('es-AR')}`;
       balEl.className = balance < 0 ? 'text-danger' : 'text-success';
       document.getElementById('tasa-ahorro').textContent = `${tasaAhorro}%`;
 
-      // Render Gráficos
-      renderChart('chartIngresos', 'doughnut', Object.keys(ingresosPorFuente), Object.values(ingresosPorFuente), ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#06b6d4']);
+      // RENDERIZADO DE GRÁFICOS
+      
+      // Gráfico 1: Egresos vs Ingresos (Con crédito discriminado)
+      renderChart('chartEgresosIngresos', 'bar', ['Ingresos Propios', 'Ingresos por Créditos', 'Egresos Totales'], [ingresosPropios, ingresosCreditos, gastosTotales], ['#10b981', '#3b82f6', '#ef4444']);
+
+      // Gráfico 2: Origen de Ingresos discriminado por rubro
+      renderChart('chartIngresos', 'doughnut', Object.keys(ingresosPorRubro), Object.values(ingresosPorRubro), ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#06b6d4', '#ec4899']);
+
+      // Gráfico 3: Gastos Globales
+      renderChart('chartGlobal', 'doughnut', Object.keys(gastosGlobalesCat), Object.values(gastosGlobalesCat), ['#0284c7', '#8b5cf6', '#ec4899', '#f43f5e', '#10b981', '#3b82f6', '#f59e0b', '#64748b']);
+
+      // Gráfico 4: Fijos vs Variables (Casa + Estudio)
+      renderChart('chartFijoVariable', 'doughnut', ['Gastos Fijos', 'Gastos Variables'], [gastosFijoVarCombined.Fijo, gastosFijoVarCombined.Variable], ['#ef4444', '#6366f1']);
+
+      // Gráfico 5 & 6: Casa y Estudio
       renderChart('chartCasa', 'pie', Object.keys(gastosCasaCat), Object.values(gastosCasaCat), ['#8b5cf6', '#ec4899', '#f43f5e', '#10b981', '#3b82f6', '#f59e0b']);
       renderChart('chartEstudio', 'pie', Object.keys(gastosEstudioCat), Object.values(gastosEstudioCat), ['#06b6d4', '#0284c7', '#3b82f6', '#6366f1', '#8b5cf6']);
-      renderChart('chartFugasTotales', 'doughnut', Object.keys(fugasTotalesCat), Object.values(fugasTotalesCat), ['#ef4444', '#f59e0b', '#8b5cf6', '#3b82f6', '#ec4899', '#10b981', '#64748b', '#06b6d4']);
-      renderChart('chartFijoVariable', 'doughnut', ['Gastos Fijos', 'Gastos Variables'], [gastosFijoVar.Fijo, gastosFijoVar.Variable], ['#ef4444', '#6366f1']);
+
+      // Gráfico 7: Inversiones
       renderChart('chartPortafolioInversiones', 'pie', Object.keys(inversionesCat), Object.values(inversionesCat), ['#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899']);
       
+      // Gráfico 8: Evolución
       renderChartEvolucion(evolucionMensual);
     }
 
@@ -713,11 +793,17 @@
 
       let colorClass = esIngreso ? 'text-success' : (esInversion ? 'text-inversion' : 'text-danger');
       let signo = esIngreso ? '+' : (esInversion ? '📈 ' : '-');
+      
+      // Usuario que registró
+      let userTag = item.usuario ? item.usuario.split('@')[0] : 'S/D';
+
+      let fijezaBadge = item.tipo === 'gasto' ? `<span class="badge ${item.fijeza === 'Fijo' ? 'badge-fijo' : 'badge-variable'}">${item.fijeza || 'Var'}</span>` : '';
+      let fuenteTxt = (item.fuente && item.fuente !== 'N/A') ? ` • ${item.fuente}` : '';
 
       li.innerHTML = `
         <div class="item-info">
-          <p>${item.concepto} <span class="badge ${badgeClass}">${item.ambito || 'Casa'}</span> <span class="badge ${item.fijeza === 'Fijo' ? 'badge-fijo' : 'badge-variable'}">${item.fijeza || 'Var'}</span></p>
-          <small>${item.fecha} • ${item.categoria || 'Varios'} • ${item.fuente || 'Banco'}</small>
+          <p>${item.concepto} <span class="badge ${badgeClass}">${item.ambito || 'Casa'}</span> ${fijezaBadge}</p>
+          <small>👤 <strong class="badge badge-user">${userTag}</strong> • ${item.fecha} • ${item.categoria || 'Varios'}${fuenteTxt}</small>
         </div>
         <div>
           <span class="${colorClass}" style="font-weight: 700;">
@@ -740,13 +826,19 @@
       charts[canvasId] = new Chart(ctx, {
         type: type,
         data: {
-          labels: labels.length ? labels : ['Sin datos en el período'],
+          labels: labels.length ? labels : ['Sin datos'],
           datasets: [{
             data: data.length ? data : [0],
             backgroundColor: colors
           }]
         },
-        options: { responsive: true, maintainAspectRatio: false }
+        options: { 
+          responsive: true, 
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom' }
+          }
+        }
       });
     }
 
@@ -770,7 +862,13 @@
             { label: 'Inversiones', data: inversiones, backgroundColor: '#f59e0b' }
           ]
         },
-        options: { responsive: true, maintainAspectRatio: false }
+        options: { 
+          responsive: true, 
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom' }
+          }
+        }
       });
     }
   </script>
