@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gestor Financiero & Analytics con IA</title>
+  <title>Gestor Financiero & Analytics</title>
   
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -127,7 +127,6 @@
       cursor: pointer;
       margin-top: 0.5rem;
     }
-    .btn:hover { background-color: #1d4ed8; }
 
     /* KPIs */
     .summary-grid {
@@ -167,56 +166,6 @@
       position: relative;
       height: 250px;
       width: 100%;
-    }
-
-    /* Chat IA Styles */
-    .chat-container {
-      display: flex;
-      flex-direction: column;
-      height: 320px;
-    }
-    .chat-messages {
-      flex: 1;
-      overflow-y: auto;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 0.8rem;
-      background: #fdfdfd;
-      margin-bottom: 0.8rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.6rem;
-    }
-    .chat-message {
-      padding: 0.6rem 0.8rem;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      max-width: 85%;
-      line-height: 1.4;
-    }
-    .chat-message.user {
-      background: #eff6ff;
-      color: #1e40af;
-      align-self: flex-end;
-      border-bottom-right-radius: 2px;
-    }
-    .chat-message.assistant {
-      background: #f1f5f9;
-      color: var(--text);
-      align-self: flex-start;
-      border-bottom-left-radius: 2px;
-    }
-    .chat-input-box {
-      display: flex;
-      gap: 0.5rem;
-    }
-    .chat-input-box input {
-      margin: 0;
-    }
-    .chat-input-box button {
-      width: auto;
-      margin: 0;
-      padding: 0 1.2rem;
     }
 
     /* Transaction List */
@@ -311,7 +260,7 @@
         </div>
       </div>
 
-      <!-- Indicadores Clave (KPIs) -->
+      <!-- Indicadores Clave (KPIs) con Deudas Pendientes -->
       <div class="summary-grid">
         <div class="summary-card">
           <span>Ingresos Totales</span>
@@ -354,6 +303,7 @@
               <input type="number" id="monto" step="0.01" placeholder="0.00" required>
             </div>
 
+            <!-- Campo Moneda -->
             <div class="form-group" id="group-moneda">
               <label for="moneda">Moneda</label>
               <select id="moneda">
@@ -424,7 +374,7 @@
         </details>
       </div>
 
-      <!-- PANEL DE GRÁFICOS Y CHAT IA -->
+      <!-- PANEL DE GRÁFICOS Y DEUDAS (ORDEN 1 AL 8) -->
       <div class="charts-grid">
         
         <!-- 1. Comparativa Ingresos y Egresos -->
@@ -475,13 +425,15 @@
           </div>
         </div>
 
-        <!-- 7. Deudas Vigentes -->
+        <!-- 7. Deudas Vigentes (Panel Directo Multi-Moneda) -->
         <div class="card">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
             <h3 style="margin-bottom: 0;">7. Deudas Vigentes 💳</h3>
             <span id="total-deuda-badge" style="background: #ffe4e6; color: #9f1239; font-size: 0.82rem; font-weight: 700; padding: 0.3rem 0.6rem; border-radius: 6px;">Total: $0</span>
           </div>
-          <div id="contenedor-deudas" style="max-height: 210px; overflow-y: auto; padding-right: 0.3rem;"></div>
+          <div id="contenedor-deudas" style="max-height: 210px; overflow-y: auto; padding-right: 0.3rem;">
+            <!-- Se genera dinámicamente con JS -->
+          </div>
         </div>
 
         <!-- 8. Portafolio de Inversiones -->
@@ -500,35 +452,6 @@
           </div>
         </div>
 
-        <!-- CHAT ASESOR FINANCIERO GEMINI AI -->
-        <div class="card" style="grid-column: 1 / -1;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
-            <h3 style="margin-bottom: 0;">🤖 Asesor Financiero IA (Gemini Chat)</h3>
-            <button id="btn-config-key" style="background: none; border: none; color: var(--primary); font-size: 0.78rem; cursor: pointer; text-decoration: underline;">⚙️ Cambiar API Key</button>
-          </div>
-          
-          <!-- Input para API Key si no está guardada -->
-          <div id="api-key-container" class="form-group hidden" style="background: #eff6ff; padding: 0.8rem; border-radius: 8px; border: 1px solid #bfdbfe; margin-bottom: 0.8rem;">
-            <label for="input-api-key" style="color: var(--primary);">Ingresa tu Gemini API Key (se guarda de forma segura en tu navegador):</label>
-            <div style="display: flex; gap: 0.5rem; margin-top: 0.4rem;">
-              <input type="password" id="input-api-key" placeholder="AIzaSy...">
-              <button id="btn-save-key" class="btn" style="width: auto; margin: 0; padding: 0 1rem;">Guardar</button>
-            </div>
-          </div>
-
-          <div class="chat-container">
-            <div id="chat-messages" class="chat-messages">
-              <div class="chat-message assistant">
-                ¡Hola! Soy tu asesor financiero con inteligencia artificial. Pregúntame lo que quieras sobre tus gastos, ahorros o por qué variaron tus finanzas entre meses. ¿En qué te ayudo hoy?
-              </div>
-            </div>
-            <div class="chat-input-box">
-              <input type="text" id="chat-input" placeholder="Ej: ¿Por qué gasté más en agosto que en julio? o ¿Cuál es mi mayor gasto?">
-              <button id="chat-send-btn" class="btn" style="margin-top: 0;">Enviar</button>
-            </div>
-          </div>
-        </div>
-
       </div>
 
     </div>
@@ -537,42 +460,8 @@
 
   <script>
     // ===================================================
-    // ⚙️ CONFIGURACIÓN Y CONSTANTES (Gestionado localmente)
+    // ⚙️ 1. FIREBASE CONFIG
     // ===================================================
-    let GEMINI_API_KEY = localStorage.getItem('gemini_api_key') || '';
-
-    const apiKeyContainer = document.getElementById('api-key-container');
-    const inputApiKey = document.getElementById('input-api-key');
-    const btnSaveKey = document.getElementById('btn-save-key');
-    const btnConfigKey = document.getElementById('btn-config-key');
-
-    function verificarApiKeyUI() {
-      if (!GEMINI_API_KEY) {
-        apiKeyContainer.classList.remove('hidden');
-      } else {
-        apiKeyContainer.classList.add('hidden');
-      }
-    }
-
-    btnSaveKey.addEventListener('click', () => {
-      const keyVal = inputApiKey.value.trim();
-      if (keyVal) {
-        localStorage.setItem('gemini_api_key', keyVal);
-        GEMINI_API_KEY = keyVal;
-        apiKeyContainer.classList.add('hidden');
-        alert("¡API Key guardada correctamente en tu navegador!");
-      } else {
-        alert("Por favor ingresa una clave válida.");
-      }
-    });
-
-    btnConfigKey.addEventListener('click', () => {
-      apiKeyContainer.classList.toggle('hidden');
-      inputApiKey.value = GEMINI_API_KEY;
-    });
-
-    verificarApiKeyUI();
-
     const firebaseConfig = {
       apiKey: "AIzaSyBG0IB0j3GFn4yRkAyGhHggJkLlh68TIfc",
       authDomain: "gestor-financiero-cf65c.firebaseapp.com",
@@ -587,6 +476,7 @@
     const auth = firebase.auth();
     const db = firebase.database();
 
+    // DOM Elements
     const loginScreen = document.getElementById('login-screen');
     const appScreen = document.getElementById('app-screen');
     const loginForm = document.getElementById('login-form');
@@ -636,6 +526,8 @@
     // DINAMISMO Y RESTRICCIONES DEL FORMULARIO
     function sincronizarFormulario() {
       const amb = ambitoSelect.value;
+
+      // REGLA PARA ÁMBITO DEUDA: Solo Descripción, Monto, Moneda y Fecha
       if (amb === 'Deuda') {
         groupTipo.classList.add('hidden');
         groupFijeza.classList.add('hidden');
@@ -648,6 +540,7 @@
         groupCategoria.classList.remove('hidden');
       }
 
+      // REGLA: Sacar tipo de movimiento "Inversión" en Casa y Estudio
       if (amb === 'Casa' || amb === 'Estudio') {
         optTipoInversion.disabled = true;
         if (tipoSelect.value === 'inversion' || tipoSelect.value === 'deuda') {
@@ -659,12 +552,15 @@
       }
 
       const tipoActual = tipoSelect.value;
+
+      // Ocultar Fijo/Variable si NO es Gasto
       if (tipoActual === 'gasto') {
         groupFijeza.classList.remove('hidden');
       } else {
         groupFijeza.classList.add('hidden');
       }
 
+      // Ocultar Fuente de Pago en Inversiones
       if (tipoActual === 'inversion' || amb === 'Inversiones') {
         groupFuente.classList.add('hidden');
       } else {
@@ -678,12 +574,17 @@
       const tipo = tipoSelect.value;
       const ambito = ambitoSelect.value;
       categoriaSelect.innerHTML = '';
+
       let lista = [];
 
       if (tipo === 'ingreso') {
-        if (ambito === 'Estudio') lista = ["Honorarios Clientes"];
-        else if (ambito === 'Inversiones') lista = ["Rentas / Inversiones", "Créditos / Préstamos", "Varios"];
-        else lista = ["Sueldo / Salario", "Honorarios Clientes", "Rentas / Inversiones", "Regalos / Varios", "Créditos / Préstamos"];
+        if (ambito === 'Estudio') {
+          lista = ["Honorarios Clientes"];
+        } else if (ambito === 'Inversiones') {
+          lista = ["Rentas / Inversiones", "Créditos / Préstamos", "Varios"];
+        } else {
+          lista = ["Sueldo / Salario", "Honorarios Clientes", "Rentas / Inversiones", "Regalos / Varios", "Créditos / Préstamos"];
+        }
       } else if (tipo === 'inversion' || ambito === 'Inversiones') {
         lista = ["Cedears / Acciones", "Plazo Fijo / Fondos", "Crypto", "Bienes Raíces", "Dólar / Divisas"];
       } else if (ambito === 'Estudio') {
@@ -705,7 +606,7 @@
     sincronizarFormulario();
 
     // ===================================================
-    // 🔐 AUTENTICACIÓN
+    // 🔐 2. AUTENTICACIÓN
     // ===================================================
     auth.onAuthStateChanged((user) => {
       if (user) {
@@ -734,10 +635,12 @@
     logoutBtn.addEventListener('click', () => auth.signOut());
 
     // ===================================================
-    // 💾 BASE DE DATOS Y PROCESAMIENTO
+    // 💾 3. BASE DE DATOS Y PROCESAMIENTO
     // ===================================================
+
     transactionForm.addEventListener('submit', (e) => {
       e.preventDefault();
+
       const amb = ambitoSelect.value;
       const tipo = (amb === 'Deuda') ? 'deuda' : tipoSelect.value;
 
@@ -780,6 +683,7 @@
     function poblarFiltroPeriodos() {
       const hoy = new Date();
       const mesActualKey = hoy.toISOString().substring(0, 7);
+      
       const periodosMeses = new Set();
       const periodosAnios = new Set();
 
@@ -795,6 +699,7 @@
 
       const mesesOrdenados = Array.from(periodosMeses).sort().reverse();
       const aniosOrdenados = Array.from(periodosAnios).sort().reverse();
+
       const valorSeleccionadoPrevio = filtroPeriodo.value;
       filtroPeriodo.innerHTML = '';
 
@@ -843,8 +748,10 @@
       
       const datosFiltrados = rawDataGlobal.filter(item => {
         if (!item.fecha) return false;
+
         const itemMoneda = item.moneda || 'ARS';
         if (mSel !== 'TODAS' && itemMoneda !== mSel) return false;
+
         if (pSel === 'TODOS') return true;
         if (pSel.startsWith('ANIO_')) return item.fecha.startsWith(pSel.replace('ANIO_', ''));
         return item.fecha.startsWith(pSel);
@@ -853,6 +760,7 @@
       let ingresosTotales = 0;
       let gastosTotales = 0;
       let inversionesTotales = 0;
+      
       let ingresosPorRubro = {};
       let gastosGlobalesCat = {};
       let gastosCasaCat = {};
@@ -863,6 +771,7 @@
       let evolucionMensual = {};
 
       itemList.innerHTML = '';
+
       if (datosFiltrados.length === 0) {
         itemList.innerHTML = '<li style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 1rem 0;">No hay movimientos registrados para este filtro.</li>';
       }
@@ -876,8 +785,11 @@
         const itemMoneda = item.moneda || 'ARS';
 
         if (tipo === 'deuda' || amb === 'Deuda') {
+          // Agrupamos deudas por combinación de concepto y moneda
           const key = `${item.concepto}___${itemMoneda}`;
-          if (!deudasMap[key]) deudasMap[key] = { concepto: item.concepto, moneda: itemMoneda, monto: 0 };
+          if (!deudasMap[key]) {
+            deudasMap[key] = { concepto: item.concepto, moneda: itemMoneda, monto: 0 };
+          }
           deudasMap[key].monto += monto;
         } else if (tipo === 'ingreso') {
           ingresosTotales += monto;
@@ -887,9 +799,11 @@
           inversionesCat[cat] = (inversionesCat[cat] || 0) + monto;
         } else {
           gastosTotales += monto;
+          
           if (amb === 'Casa' || amb === 'Estudio') {
             gastosFijoVarCombined[fij] = (gastosFijoVarCombined[fij] || 0) + monto;
           }
+
           if (amb === 'Estudio') {
             gastosEstudioCat[cat] = (gastosEstudioCat[cat] || 0) + monto;
             gastosGlobalesCat['Estudio ⚖️'] = (gastosGlobalesCat['Estudio ⚖️'] || 0) + monto;
@@ -898,22 +812,27 @@
             gastosGlobalesCat[cat] = (gastosGlobalesCat[cat] || 0) + monto;
           }
         }
+
         renderItemHistorial(item);
       });
 
+      // Evolución Histórica
       rawDataGlobal.forEach(item => {
         if (item.tipo === 'deuda' || item.ambito === 'Deuda') return;
         const itemMoneda = item.moneda || 'ARS';
         if (mSel !== 'TODAS' && itemMoneda !== mSel) return;
+
         const mes = item.fecha ? item.fecha.substring(0, 7) : '';
         if (!mes) return;
 
         if (!evolucionMensual[mes]) evolucionMensual[mes] = { ingresos: 0, gastos: 0, inversiones: 0 };
+        
         if (item.tipo === 'ingreso') evolucionMensual[mes].ingresos += item.monto;
         else if (item.tipo === 'inversion' || item.ambito === 'Inversiones') evolucionMensual[mes].inversiones += item.monto;
         else evolucionMensual[mes].gastos += item.monto;
       });
 
+      // KPIs
       const balance = ingresosTotales - gastosTotales - inversionesTotales;
       const tasaAhorro = ingresosTotales > 0 ? ((inversionesTotales / ingresosTotales) * 100).toFixed(1) : 0;
       const currCode = mSel === 'TODAS' ? '' : mSel;
@@ -927,22 +846,30 @@
       balEl.className = balance < 0 ? 'text-danger' : 'text-success';
       document.getElementById('tasa-ahorro').textContent = `${tasaAhorro}%`;
 
+      // Cálculo e integración del KPI de Deudas Pendientes
       let totalARSDeuda = 0;
       let totalUSDDeuda = 0;
+
       Object.values(deudasMap).forEach(d => {
         if (d.moneda === 'USD') totalUSDDeuda += d.monto;
         else totalARSDeuda += d.monto;
       });
 
       const kpiDeudasEl = document.getElementById('kpi-deudas');
-      if (mSel === 'ARS') kpiDeudasEl.textContent = formatearMonto(totalARSDeuda, 'ARS');
-      else if (mSel === 'USD') kpiDeudasEl.textContent = formatearMonto(totalUSDDeuda, 'USD');
-      else {
+      if (mSel === 'ARS') {
+        kpiDeudasEl.textContent = formatearMonto(totalARSDeuda, 'ARS');
+      } else if (mSel === 'USD') {
+        kpiDeudasEl.textContent = formatearMonto(totalUSDDeuda, 'USD');
+      } else {
         let partes = [];
         if (totalARSDeuda > 0 || totalUSDDeuda === 0) partes.push(formatearMonto(totalARSDeuda, 'ARS'));
         if (totalUSDDeuda > 0) partes.push(formatearMonto(totalUSDDeuda, 'USD'));
         kpiDeudasEl.textContent = partes.join(' | ');
       }
+
+      // ===================================================
+      // RENDERIZADO DE GRÁFICOS Y PANEL DE DEUDAS
+      // ===================================================
 
       renderChart('chartEgresosIngresos', 'bar', ['Ingresos Totales', 'Egresos Totales'], [ingresosTotales, gastosTotales], ['#10b981', '#ef4444'], currCode);
       renderChart('chartIngresos', 'doughnut', Object.keys(ingresosPorRubro), Object.values(ingresosPorRubro), ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#06b6d4', '#ec4899'], currCode);
@@ -951,8 +878,12 @@
       renderChart('chartEstudio', 'pie', Object.keys(gastosEstudioCat), Object.values(gastosEstudioCat), ['#06b6d4', '#0284c7', '#3b82f6', '#6366f1', '#8b5cf6'], currCode);
       renderChart('chartFijoVariable', 'doughnut', ['Gastos Fijos', 'Gastos Variables'], [gastosFijoVarCombined.Fijo, gastosFijoVarCombined.Variable], ['#ef4444', '#6366f1'], currCode);
       
+      // Renderizar Panel de Deudas Vigentes con soporte multi-moneda
       renderPanelDeudas(deudasMap, currCode);
+
       renderChart('chartPortafolioInversiones', 'pie', Object.keys(inversionesCat), Object.values(inversionesCat), ['#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899'], currCode);
+
+      // Evolución Mensual
       renderChartEvolucion(evolucionMensual, currCode);
     }
 
@@ -971,12 +902,14 @@
 
       let colorClass = 'text-danger';
       let signo = '-';
+
       if (esIngreso) { colorClass = 'text-success'; signo = '+'; }
       else if (esInversion) { colorClass = 'text-inversion'; signo = '📈 '; }
       else if (esDeuda) { colorClass = 'text-deuda'; signo = '💳 '; }
 
       let userTag = item.usuario ? item.usuario.split('@')[0] : 'S/D';
       let monedaTag = item.moneda || 'ARS';
+
       let fijezaBadge = item.tipo === 'gasto' ? `<span class="badge ${item.fijeza === 'Fijo' ? 'badge-fijo' : 'badge-variable'}">${item.fijeza || 'Var'}</span>` : '';
       let fuenteTxt = (item.fuente && item.fuente !== 'N/A') ? ` • ${item.fuente}` : '';
 
@@ -1006,6 +939,7 @@
       if (charts[canvasId]) charts[canvasId].destroy();
 
       const tieneDatosReales = data && data.length > 0 && data.some(v => v > 0);
+
       charts[canvasId] = new Chart(ctx, {
         type: type,
         data: {
@@ -1042,6 +976,7 @@
       if (!contenedor || !badgeTotal) return;
 
       contenedor.innerHTML = '';
+
       const items = Object.values(deudasMap);
       let totalARS = 0;
       let totalUSD = 0;
@@ -1056,11 +991,15 @@
       ul.style.listStyle = 'none';
 
       items.forEach(item => {
-        if (item.moneda === 'USD') totalUSD += item.monto;
-        else totalARS += item.monto;
+        if (item.moneda === 'USD') {
+          totalUSD += item.monto;
+        } else {
+          totalARS += item.monto;
+        }
 
         const li = document.createElement('li');
         li.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px dashed var(--border); font-size: 0.88rem;';
+        
         li.innerHTML = `
           <span style="font-weight: 600; color: var(--text);">
             ${item.concepto} <span class="badge badge-moneda">${item.moneda}</span>
@@ -1069,11 +1008,15 @@
         `;
         ul.appendChild(li);
       });
+
       contenedor.appendChild(ul);
 
-      if (currCode === 'ARS') badgeTotal.textContent = `Total: ${formatearMonto(totalARS, 'ARS')}`;
-      else if (currCode === 'USD') badgeTotal.textContent = `Total: ${formatearMonto(totalUSD, 'USD')}`;
-      else {
+      // Formato del Badge Total superior del gráfico 7
+      if (currCode === 'ARS') {
+        badgeTotal.textContent = `Total: ${formatearMonto(totalARS, 'ARS')}`;
+      } else if (currCode === 'USD') {
+        badgeTotal.textContent = `Total: ${formatearMonto(totalUSD, 'USD')}`;
+      } else {
         let partes = [];
         if (totalARS > 0 || totalUSD === 0) partes.push(formatearMonto(totalARS, 'ARS'));
         if (totalUSD > 0) partes.push(formatearMonto(totalUSD, 'USD'));
@@ -1088,6 +1031,7 @@
       if (charts['chartEvolucion']) charts['chartEvolucion'].destroy();
 
       const meses = Object.keys(evolucionMensual).filter(m => m && m !== 'Sin fecha').sort();
+      
       let labelsFormatted = meses.map(m => formatearNombreMes(m));
       let ingresos = meses.map(m => evolucionMensual[m].ingresos);
       let gastos = meses.map(m => evolucionMensual[m].gastos);
@@ -1130,79 +1074,6 @@
         }
       });
     }
-
-    // ===================================================
-    // 🤖 LÓGICA DE INTEGRACIÓN CON GEMINI CHAT
-    // ===================================================
-    const chatMessagesEl = document.getElementById('chat-messages');
-    const chatInputEl = document.getElementById('chat-input');
-    const chatSendBtn = document.getElementById('chat-send-btn');
-
-    async function enviarPreguntaGemini() {
-      const pregunta = chatInputEl.value.trim();
-      if (!pregunta) return;
-
-      if (!GEMINI_API_KEY) {
-        alert("Por favor configura tu API Key haciendo clic en '⚙️ Cambiar API Key' arriba en la sección del chat.");
-        apiKeyContainer.classList.remove('hidden');
-        return;
-      }
-
-      // Mostrar mensaje del usuario
-      agregarMensajeChat(pregunta, 'user');
-      chatInputEl.value = '';
-
-      // Crear mensaje temporal de "Pensando..."
-      const loadingId = agregarMensajeChat('Analizando tus finanzas...', 'assistant loading');
-
-      // Preparar contexto completo de los datos globales para la IA
-      const contextoFinanciero = JSON.stringify(rawDataGlobal);
-      const promptSistema = `Actúa como un asesor financiero personal experto, analítico, directo y amigable. Tienes acceso completo a la base de datos de movimientos del usuario en formato JSON: ${contextoFinanciero}. Responde a su pregunta basándote estrictamente en estos datos reales (compara meses, categorías, deudas o ingresos según corresponda). Sé claro, usa formato legible y conciso.`;
-
-      try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [
-              { parts: [{ text: promptSistema }, { text: `Pregunta del usuario: ${pregunta}` }] }
-            ]
-          })
-        });
-
-        const data = await response.json();
-        
-        if (data.error) {
-          throw new Error(data.error.message || "Error en la API");
-        }
-
-        const respuestaIA = data.candidates?.[0]?.content?.parts?.[0]?.text || "Lo siento, no pude procesar el análisis en este momento.";
-
-        // Remover mensaje de carga y poner la respuesta real
-        document.getElementById(loadingId).remove();
-        agregarMensajeChat(respuestaIA, 'assistant');
-
-      } catch (error) {
-        document.getElementById(loadingId).remove();
-        agregarMensajeChat("Ocurrió un error al conectar con Gemini. Verificá que tu API Key sea correcta.", 'assistant');
-      }
-    }
-
-    function agregarMensajeChat(texto, clase) {
-      const div = document.createElement('div');
-      div.className = `chat-message ${clase}`;
-      const uniqueId = 'msg-' + Date.now() + Math.random();
-      div.id = uniqueId;
-      div.textContent = texto;
-      chatMessagesEl.appendChild(div);
-      chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
-      return uniqueId;
-    }
-
-    chatSendBtn.addEventListener('click', enviarPreguntaGemini);
-    chatInputEl.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') enviarPreguntaGemini();
-    });
   </script>
 </body>
 </html>
