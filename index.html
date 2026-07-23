@@ -145,7 +145,7 @@
     /* KPIs */
     .summary-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
       gap: 0.75rem;
       margin-bottom: 1.25rem;
       text-align: center;
@@ -157,7 +157,7 @@
       border: 1px solid var(--border);
     }
     .summary-card span { font-size: 0.72rem; color: var(--text-muted); display: block; }
-    .summary-card strong { font-size: 0.98rem; display: block; margin-top: 0.15rem; }
+    .summary-card strong { font-size: 0.92rem; display: block; margin-top: 0.15rem; }
 
     /* Collapsible Details */
     details summary {
@@ -276,7 +276,7 @@
         </div>
       </div>
 
-      <!-- Indicadores Clave (KPIs) con Deudas Pendientes -->
+      <!-- Indicadores Clave (KPIs) con Totales Separados (Deudas y A Percibir) -->
       <div class="summary-grid">
         <div class="summary-card">
           <span>Ingresos Totales</span>
@@ -295,8 +295,12 @@
           <strong id="total-balance">$0</strong>
         </div>
         <div class="summary-card">
-          <span>Deudas Pendientes 💳</span>
-          <strong id="kpi-deudas" class="text-deuda">$0</strong>
+          <span>Deudas a Pagar 💳</span>
+          <strong id="kpi-deudas-pagar" class="text-deuda">$0</strong>
+        </div>
+        <div class="summary-card">
+          <span>A Percibir 🟢</span>
+          <strong id="kpi-deudas-cobrar" class="text-cobrar">$0</strong>
         </div>
         <div class="summary-card">
           <span>Tasa de Ahorro</span>
@@ -448,13 +452,10 @@
         </div>
 
         <!-- 7. Deudas Vigentes (Histórico) -->
-        <div class="card">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
-            <h3 style="margin-bottom: 0;">7. Deudas y A Percibir Vigentes 💳</h3>
-            <span id="total-deuda-badge" style="background: #ffe4e6; color: #9f1239; font-size: 0.82rem; font-weight: 700; padding: 0.3rem 0.6rem; border-radius: 6px;">Total Neto: $0</span>
-          </div>
-          <div id="contenedor-deudas" style="max-height: 210px; overflow-y: auto; padding-right: 0.3rem;">
-            <!-- Se genera dinámicamente con JS de forma histórica -->
+        <div class="card" style="grid-column: span 1;">
+          <h3 style="margin-bottom: 0.8rem;">7. Deudas y A Percibir Vigentes 💳</h3>
+          <div id="contenedor-deudas" style="max-height: 240px; overflow-y: auto; padding-right: 0.3rem;">
+            <!-- Se genera dinámicamente con JS -->
           </div>
         </div>
 
@@ -561,7 +562,6 @@
           <option value="deuda_cobrar">Deuda a percibir</option>
         `;
         
-        // Mantener selección si ya era una opción de deuda válida
         if (valorSeleccionadoPrevio === 'deuda_pagar' || valorSeleccionadoPrevio === 'deuda_cobrar') {
           tipoSelect.value = valorSeleccionadoPrevio;
         }
@@ -813,13 +813,13 @@
       let gastosCasaCat = {};
       let gastosEstudioCat = {};
       let inversionesCat = {};
-      let deudasMapHistorico = {}; // Sección 7 independiente del filtro de período (histórica)
+      let deudasMapHistorico = {}; 
       let gastosFijoVarCombined = { Fijo: 0, Variable: 0 };
       let evolucionMensual = {};
 
       itemList.innerHTML = '';
 
-      // Procesar deudas de forma global/histórica para la sección 7
+      // Procesar deudas de forma global/histórica para la sección 7 y KPIs independientes
       rawDataGlobal.forEach(item => {
         const itemMoneda = item.moneda || 'ARS';
         if (mSel !== 'TODAS' && itemMoneda !== mSel) return;
@@ -845,18 +845,17 @@
         const amb = item.ambito || 'Casa';
         const fij = item.fijeza || 'Variable';
 
-        // Aplicar buscador por texto en historial
         if (queryBusqueda) {
           const textoConcatenado = `${item.concepto} ${cat} ${amb} ${item.fecha} ${item.usuario || ''}`.toLowerCase();
           if (!textoConcatenado.includes(queryBusqueda)) {
-            return; // Omitir si no coincide con la búsqueda
+            return;
           }
         }
 
         contadorMostrados++;
 
         if (tipo === 'deuda' || tipo === 'deuda_pagar' || tipo === 'deuda_cobrar' || amb === 'Deuda') {
-          // Ya procesado arriba para la sección 7 histórica
+          // Ya procesado arriba
         } else if (tipo === 'ingreso') {
           ingresosTotales += monto;
           ingresosPorRubro[cat] = (ingresosPorRubro[cat] || 0) + monto;
@@ -914,26 +913,39 @@
       balEl.className = balance < 0 ? 'text-danger' : 'text-success';
       document.getElementById('tasa-ahorro').textContent = `${tasaAhorro}%`;
 
-      let totalARSDeudaPagar = 0;
-      let totalUSDDeudaPagar = 0;
+      // Calcular totales separados para KPIs
+      let totalARSPagar = 0, totalUSDPagar = 0;
+      let totalARSCobrar = 0, totalUSDCobrar = 0;
 
       Object.values(deudasMapHistorico).forEach(d => {
         if (d.subTipo === 'pagar') {
-          if (d.moneda === 'USD') totalUSDDeudaPagar += d.monto;
-          else totalARSDeudaPagar += d.monto;
+          if (d.moneda === 'USD') totalUSDPagar += d.monto;
+          else totalARSPagar += d.monto;
+        } else if (d.subTipo === 'cobrar') {
+          if (d.moneda === 'USD') totalUSDCobrar += d.monto;
+          else totalARSCobrar += d.monto;
         }
       });
 
-      const kpiDeudasEl = document.getElementById('kpi-deudas');
+      const kpiDeudasPagarEl = document.getElementById('kpi-deudas-pagar');
+      const kpiDeudasCobrarEl = document.getElementById('kpi-deudas-cobrar');
+
       if (mSel === 'ARS') {
-        kpiDeudasEl.textContent = formatearMonto(totalARSDeudaPagar, 'ARS');
+        kpiDeudasPagarEl.textContent = formatearMonto(totalARSPagar, 'ARS');
+        kpiDeudasCobrarEl.textContent = formatearMonto(totalARSCobrar, 'ARS');
       } else if (mSel === 'USD') {
-        kpiDeudasEl.textContent = formatearMonto(totalUSDDeudaPagar, 'USD');
+        kpiDeudasPagarEl.textContent = formatearMonto(totalUSDPagar, 'USD');
+        kpiDeudasCobrarEl.textContent = formatearMonto(totalUSDCobrar, 'USD');
       } else {
-        let partes = [];
-        if (totalARSDeudaPagar > 0 || totalUSDDeudaPagar === 0) partes.push(formatearMonto(totalARSDeudaPagar, 'ARS'));
-        if (totalUSDDeudaPagar > 0) partes.push(formatearMonto(totalUSDDeudaPagar, 'USD'));
-        kpiDeudasEl.textContent = partes.join(' | ');
+        let partesPagar = [];
+        if (totalARSPagar > 0 || totalUSDPagar === 0) partesPagar.push(formatearMonto(totalARSPagar, 'ARS'));
+        if (totalUSDPagar > 0) partesPagar.push(formatearMonto(totalUSDPagar, 'USD'));
+        kpiDeudasPagarEl.textContent = partesPagar.join(' | ');
+
+        let partesCobrar = [];
+        if (totalARSCobrar > 0 || totalUSDCobrar === 0) partesCobrar.push(formatearMonto(totalARSCobrar, 'ARS'));
+        if (totalUSDCobrar > 0) partesCobrar.push(formatearMonto(totalUSDCobrar, 'USD'));
+        kpiDeudasCobrarEl.textContent = partesCobrar.join(' | ');
       }
 
       renderChart('chartEgresosIngresos', 'bar', ['Ingresos Totales', 'Egresos Totales'], [ingresosTotales, gastosTotales], ['#10b981', '#ef4444'], currCode);
@@ -1040,39 +1052,53 @@
 
     function renderPanelDeudas(deudasMap, currCode) {
       const contenedor = document.getElementById('contenedor-deudas');
-      const badgeTotal = document.getElementById('total-deuda-badge');
-      if (!contenedor || !badgeTotal) return;
+      if (!contenedor) return;
 
       contenedor.innerHTML = '';
 
       const items = Object.values(deudasMap);
-      let totalARSNeto = 0;
-      let totalUSDNeto = 0;
 
       if (items.length === 0) {
         contenedor.innerHTML = '<p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 1.5rem 0;">No hay deudas ni registros a percibir vigentes. 🎉</p>';
-        badgeTotal.textContent = `Total Neto: ${formatearMonto(0, currCode)}`;
         return;
       }
 
       const deudasPagar = items.filter(i => i.subTipo === 'pagar');
       const deudasCobrar = items.filter(i => i.subTipo === 'cobrar');
 
+      // Acumuladores separados para la sección 7
+      let arsPagar = 0, usdPagar = 0;
+      let arsCobrar = 0, usdCobrar = 0;
+
+      deudasPagar.forEach(d => {
+        if (d.moneda === 'USD') usdPagar += d.monto;
+        else arsPagar += d.monto;
+      });
+
+      deudasCobrar.forEach(d => {
+        if (d.moneda === 'USD') usdCobrar += d.monto;
+        else arsCobrar += d.monto;
+      });
+
       const ul = document.createElement('ul');
       ul.style.listStyle = 'none';
 
+      // Bloque Deudas a Pagar
       if (deudasPagar.length > 0) {
         const titlePagar = document.createElement('li');
-        titlePagar.style.cssText = 'font-size: 0.78rem; font-weight: 700; color: var(--deuda); margin-top: 0.2rem; margin-bottom: 0.3rem; text-transform: uppercase;';
-        titlePagar.textContent = '🔴 Deuda a pagar';
+        titlePagar.style.cssText = 'display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; font-weight: 700; color: var(--deuda); margin-top: 0.2rem; margin-bottom: 0.3rem; text-transform: uppercase; border-bottom: 1px solid var(--border); padding-bottom: 0.2rem;';
+        
+        let totalPagarStr = [];
+        if (arsPagar > 0 || usdPagar === 0) totalPagarStr.push(formatearMonto(arsPagar, 'ARS'));
+        if (usdPagar > 0) totalPagarStr.push(formatearMonto(usdPagar, 'USD'));
+
+        titlePagar.innerHTML = `<span>🔴 Deuda a Pagar</span><span>Total: ${totalPagarStr.join(' | ')}</span>`;
         ul.appendChild(titlePagar);
 
         deudasPagar.forEach(item => {
-          if (item.moneda === 'USD') totalUSDNeto -= item.monto;
-          else totalARSNeto -= item.monto;
-
+          if (currCode && item.moneda !== currCode) return; // Filtrar si se seleccionó moneda específica arriba
           const li = document.createElement('li');
-          li.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0; border-bottom: 1px dashed var(--border); font-size: 0.85rem;';
+          li.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 0.35rem 0; border-bottom: 1px dashed var(--border); font-size: 0.82rem;';
           li.innerHTML = `
             <span style="font-weight: 600; color: var(--text);">
               ${item.concepto} <span class="badge badge-moneda">${item.moneda}</span>
@@ -1083,18 +1109,22 @@
         });
       }
 
+      // Bloque A Percibir
       if (deudasCobrar.length > 0) {
         const titleCobrar = document.createElement('li');
-        titleCobrar.style.cssText = 'font-size: 0.78rem; font-weight: 700; color: var(--cobrar); margin-top: 0.6rem; margin-bottom: 0.3rem; text-transform: uppercase;';
-        titleCobrar.textContent = '🟢 Deuda a percibir';
+        titleCobrar.style.cssText = 'display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; font-weight: 700; color: var(--cobrar); margin-top: 0.8rem; margin-bottom: 0.3rem; text-transform: uppercase; border-bottom: 1px solid var(--border); padding-bottom: 0.2rem;';
+        
+        let totalCobrarStr = [];
+        if (arsCobrar > 0 || usdCobrar === 0) totalCobrarStr.push(formatearMonto(arsCobrar, 'ARS'));
+        if (usdCobrar > 0) totalCobrarStr.push(formatearMonto(usdCobrar, 'USD'));
+
+        titleCobrar.innerHTML = `<span>🟢 A Percibir</span><span>Total: ${totalCobrarStr.join(' | ')}</span>`;
         ul.appendChild(titleCobrar);
 
         deudasCobrar.forEach(item => {
-          if (item.moneda === 'USD') totalUSDNeto += item.monto;
-          else totalARSNeto += item.monto;
-
+          if (currCode && item.moneda !== currCode) return;
           const li = document.createElement('li');
-          li.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0; border-bottom: 1px dashed var(--border); font-size: 0.85rem;';
+          li.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 0.35rem 0; border-bottom: 1px dashed var(--border); font-size: 0.82rem;';
           li.innerHTML = `
             <span style="font-weight: 600; color: var(--text);">
               ${item.concepto} <span class="badge badge-moneda">${item.moneda}</span>
@@ -1106,19 +1136,6 @@
       }
 
       contenedor.appendChild(ul);
-
-      if (currCode === 'ARS') {
-        badgeTotal.textContent = `Neto: ${formatearMonto(totalARSNeto, 'ARS')}`;
-        badgeTotal.style.color = totalARSNeto < 0 ? 'var(--deuda)' : 'var(--cobrar)';
-      } else if (currCode === 'USD') {
-        badgeTotal.textContent = `Neto: ${formatearMonto(totalUSDNeto, 'USD')}`;
-        badgeTotal.style.color = totalUSDNeto < 0 ? 'var(--deuda)' : 'var(--cobrar)';
-      } else {
-        let partes = [];
-        if (totalARSNeto !== 0 || totalUSDNeto === 0) partes.push(formatearMonto(totalARSNeto, 'ARS'));
-        if (totalUSDNeto !== 0) partes.push(formatearMonto(totalUSDNeto, 'USD'));
-        badgeTotal.textContent = `Neto: ${partes.join(' | ')}`;
-      }
     }
 
     function renderChartEvolucion(evolucionMensual, currCode) {
