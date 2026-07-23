@@ -370,7 +370,7 @@
         </details>
       </div>
 
-      <!-- PANEL DE GRÁFICOS ANALÍTICOS (ORDEN 1 AL 8) -->
+      <!-- PANEL DE GRÁFICOS Y DEUDAS (ORDEN 1 AL 8) -->
       <div class="charts-grid">
         
         <!-- 1. Comparativa Ingresos y Egresos -->
@@ -421,11 +421,14 @@
           </div>
         </div>
 
-        <!-- 7. Deuda -->
+        <!-- 7. Deudas Vigentes (Panel Directo) -->
         <div class="card">
-          <h3>7. Deuda (Registradas)</h3>
-          <div class="chart-box">
-            <canvas id="chartDeuda"></canvas>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+            <h3 style="margin-bottom: 0;">7. Deudas Vigentes 💳</h3>
+            <span id="total-deuda-badge" style="background: #ffe4e6; color: #9f1239; font-size: 0.85rem; font-weight: 700; padding: 0.3rem 0.6rem; border-radius: 6px;">Total: $0</span>
+          </div>
+          <div id="contenedor-deudas" style="max-height: 210px; overflow-y: auto; padding-right: 0.3rem;">
+            <!-- Se genera dinámicamente con JS -->
           </div>
         </div>
 
@@ -498,15 +501,22 @@
     const nombresMeses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
     function formatearNombreMes(keyYYYYMM) {
-      if (!keyYYYYMM || !keyYYYYMM.includes('-')) return keyYYYYMM;
-      const [year, month] = keyYYYYMM.split('-');
-      const monthIdx = parseInt(month, 10) - 1;
+      if (!keyYYYYMM || typeof keyYYYYMM !== 'string') return '';
+      if (!keyYYYYMM.includes('-')) return keyYYYYMM;
+      const parts = keyYYYYMM.split('-');
+      if (parts.length < 2) return keyYYYYMM;
+      const year = parts[0];
+      const monthIdx = parseInt(parts[1], 10) - 1;
+      if (isNaN(monthIdx) || monthIdx < 0 || monthIdx >= nombresMeses.length) {
+        return keyYYYYMM;
+      }
       return `${nombresMeses[monthIdx]} ${year}`;
     }
 
     function formatearMonto(monto, moneda = 'ARS') {
-      const simbolo = moneda === 'USD' ? 'US$' : '$';
-      return `${simbolo}${monto.toLocaleString('es-AR')}`;
+      const num = Number(monto) || 0;
+      const simbolo = (moneda === 'USD') ? 'US$' : '$';
+      return `${simbolo}${num.toLocaleString('es-AR')}`;
     }
 
     // DINAMISMO Y RESTRICCIONES DEL FORMULARIO
@@ -598,7 +608,7 @@
       if (user) {
         loginScreen.classList.add('hidden');
         appScreen.classList.remove('hidden');
-        userEmailDisplay.textContent = user.email.split('@')[0];
+        userEmailDisplay.textContent = user.email ? user.email.split('@')[0] : 'Usuario';
         escucharMovimientos();
       } else {
         loginScreen.classList.remove('hidden');
@@ -802,7 +812,9 @@
         const itemMoneda = item.moneda || 'ARS';
         if (mSel !== 'TODAS' && itemMoneda !== mSel) return;
 
-        const mes = item.fecha ? item.fecha.substring(0, 7) : 'Sin fecha';
+        const mes = item.fecha ? item.fecha.substring(0, 7) : '';
+        if (!mes) return;
+
         if (!evolucionMensual[mes]) evolucionMensual[mes] = { ingresos: 0, gastos: 0, inversiones: 0 };
         
         if (item.tipo === 'ingreso') evolucionMensual[mes].ingresos += item.monto;
@@ -825,7 +837,7 @@
       document.getElementById('tasa-ahorro').textContent = `${tasaAhorro}%`;
 
       // ===================================================
-      // RENDERIZADO DE GRÁFICOS (RESET GARANTIZADO SI ESTÁ VACÍO)
+      // RENDERIZADO DE GRÁFICOS Y PANEL DE DEUDAS
       // ===================================================
 
       renderChart('chartEgresosIngresos', 'bar', ['Ingresos Totales', 'Egresos Totales'], [ingresosTotales, gastosTotales], ['#10b981', '#ef4444'], currCode);
@@ -834,10 +846,13 @@
       renderChart('chartCasa', 'pie', Object.keys(gastosCasaCat), Object.values(gastosCasaCat), ['#8b5cf6', '#ec4899', '#f43f5e', '#10b981', '#3b82f6', '#f59e0b'], currCode);
       renderChart('chartEstudio', 'pie', Object.keys(gastosEstudioCat), Object.values(gastosEstudioCat), ['#06b6d4', '#0284c7', '#3b82f6', '#6366f1', '#8b5cf6'], currCode);
       renderChart('chartFijoVariable', 'doughnut', ['Gastos Fijos', 'Gastos Variables'], [gastosFijoVarCombined.Fijo, gastosFijoVarCombined.Variable], ['#ef4444', '#6366f1'], currCode);
-      renderChart('chartDeuda', 'bar', Object.keys(deudasMap), Object.values(deudasMap), ['#e11d48', '#f43f5e', '#fb7185', '#fda4af'], currCode);
+      
+      // Renderizar Panel de Deudas Vigentes
+      renderPanelDeudas(deudasMap, currCode);
+
       renderChart('chartPortafolioInversiones', 'pie', Object.keys(inversionesCat), Object.values(inversionesCat), ['#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899'], currCode);
 
-      // Evolución Mensual (Limpia correctamente si no hay datos)
+      // Evolución Mensual
       renderChartEvolucion(evolucionMensual, currCode);
     }
 
@@ -887,10 +902,12 @@
     };
 
     function renderChart(canvasId, type, labels, data, colors, currCode) {
-      const ctx = document.getElementById(canvasId).getContext('2d');
+      const el = document.getElementById(canvasId);
+      if (!el) return;
+      const ctx = el.getContext('2d');
       if (charts[canvasId]) charts[canvasId].destroy();
 
-      const tieneDatosReales = data.length > 0 && data.some(v => v > 0);
+      const tieneDatosReales = data && data.length > 0 && data.some(v => v > 0);
 
       charts[canvasId] = new Chart(ctx, {
         type: type,
@@ -922,18 +939,56 @@
       });
     }
 
+    function renderPanelDeudas(deudasMap, currCode) {
+      const contenedor = document.getElementById('contenedor-deudas');
+      const badgeTotal = document.getElementById('total-deuda-badge');
+      if (!contenedor || !badgeTotal) return;
+
+      contenedor.innerHTML = '';
+
+      const conceptos = Object.keys(deudasMap);
+      let totalDeuda = 0;
+
+      if (conceptos.length === 0) {
+        contenedor.innerHTML = '<p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 1.5rem 0;">No hay deudas registradas en este período. 🎉</p>';
+        badgeTotal.textContent = `Total: ${formatearMonto(0, currCode)}`;
+        return;
+      }
+
+      const ul = document.createElement('ul');
+      ul.style.listStyle = 'none';
+
+      conceptos.forEach(concepto => {
+        const monto = deudasMap[concepto] || 0;
+        totalDeuda += monto;
+
+        const li = document.createElement('li');
+        li.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px dashed var(--border); font-size: 0.88rem;';
+        
+        li.innerHTML = `
+          <span style="font-weight: 600; color: var(--text);">${concepto}</span>
+          <span style="font-weight: 700; color: var(--deuda);">${formatearMonto(monto, currCode)}</span>
+        `;
+        ul.appendChild(li);
+      });
+
+      contenedor.appendChild(ul);
+      badgeTotal.textContent = `Total: ${formatearMonto(totalDeuda, currCode)}`;
+    }
+
     function renderChartEvolucion(evolucionMensual, currCode) {
-      const ctx = document.getElementById('chartEvolucion').getContext('2d');
+      const el = document.getElementById('chartEvolucion');
+      if (!el) return;
+      const ctx = el.getContext('2d');
       if (charts['chartEvolucion']) charts['chartEvolucion'].destroy();
 
-      const meses = Object.keys(evolucionMensual).sort();
+      const meses = Object.keys(evolucionMensual).filter(m => m && m !== 'Sin fecha').sort();
       
       let labelsFormatted = meses.map(m => formatearNombreMes(m));
       let ingresos = meses.map(m => evolucionMensual[m].ingresos);
       let gastos = meses.map(m => evolucionMensual[m].gastos);
       let inversiones = meses.map(m => evolucionMensual[m].inversiones);
 
-      // Si no hay datos registrados, mostramos gráfico vacío con "Sin datos"
       if (meses.length === 0) {
         labelsFormatted = ['Sin datos'];
         ingresos = [0];
