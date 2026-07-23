@@ -131,7 +131,7 @@
     /* KPIs */
     .summary-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
       gap: 0.75rem;
       margin-bottom: 1.25rem;
       text-align: center;
@@ -143,7 +143,7 @@
       border: 1px solid var(--border);
     }
     .summary-card span { font-size: 0.72rem; color: var(--text-muted); display: block; }
-    .summary-card strong { font-size: 1.05rem; display: block; margin-top: 0.15rem; }
+    .summary-card strong { font-size: 0.98rem; display: block; margin-top: 0.15rem; }
 
     /* Collapsible History */
     details summary {
@@ -260,7 +260,7 @@
         </div>
       </div>
 
-      <!-- Indicadores Clave (KPIs) -->
+      <!-- Indicadores Clave (KPIs) con Deudas Pendientes -->
       <div class="summary-grid">
         <div class="summary-card">
           <span>Ingresos Totales</span>
@@ -277,6 +277,10 @@
         <div class="summary-card">
           <span>Balance Neto</span>
           <strong id="total-balance">$0</strong>
+        </div>
+        <div class="summary-card">
+          <span>Deudas Pendientes 💳</span>
+          <strong id="kpi-deudas" class="text-deuda">$0</strong>
         </div>
         <div class="summary-card">
           <span>Tasa de Ahorro</span>
@@ -842,6 +846,27 @@
       balEl.className = balance < 0 ? 'text-danger' : 'text-success';
       document.getElementById('tasa-ahorro').textContent = `${tasaAhorro}%`;
 
+      // Cálculo e integración del KPI de Deudas Pendientes
+      let totalARSDeuda = 0;
+      let totalUSDDeuda = 0;
+
+      Object.values(deudasMap).forEach(d => {
+        if (d.moneda === 'USD') totalUSDDeuda += d.monto;
+        else totalARSDeuda += d.monto;
+      });
+
+      const kpiDeudasEl = document.getElementById('kpi-deudas');
+      if (mSel === 'ARS') {
+        kpiDeudasEl.textContent = formatearMonto(totalARSDeuda, 'ARS');
+      } else if (mSel === 'USD') {
+        kpiDeudasEl.textContent = formatearMonto(totalUSDDeuda, 'USD');
+      } else {
+        let partes = [];
+        if (totalARSDeuda > 0 || totalUSDDeuda === 0) partes.push(formatearMonto(totalARSDeuda, 'ARS'));
+        if (totalUSDDeuda > 0) partes.push(formatearMonto(totalUSDDeuda, 'USD'));
+        kpiDeudasEl.textContent = partes.join(' | ');
+      }
+
       // ===================================================
       // RENDERIZADO DE GRÁFICOS Y PANEL DE DEUDAS
       // ===================================================
@@ -986,13 +1011,12 @@
 
       contenedor.appendChild(ul);
 
-      // Formato del Badge Total superior según el filtro de moneda seleccionado
+      // Formato del Badge Total superior del gráfico 7
       if (currCode === 'ARS') {
         badgeTotal.textContent = `Total: ${formatearMonto(totalARS, 'ARS')}`;
       } else if (currCode === 'USD') {
         badgeTotal.textContent = `Total: ${formatearMonto(totalUSD, 'USD')}`;
       } else {
-        // Opción "Todas las Monedas"
         let partes = [];
         if (totalARS > 0 || totalUSD === 0) partes.push(formatearMonto(totalARS, 'ARS'));
         if (totalUSD > 0) partes.push(formatearMonto(totalUSD, 'USD'));
