@@ -3,23 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gestor Financiero</title>
+  <title>Gestor Financiero & Dashboard Analytics</title>
   
   <!-- Firebase SDKs (Versión compat) -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+  
+  <!-- Chart.js para Gráficos Interactivos -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
     :root {
       --primary: #2563eb;
-      --bg: #f1f5f9;
+      --bg: #f8fafc;
       --card-bg: #ffffff;
       --text: #0f172a;
       --text-muted: #64748b;
       --border: #e2e8f0;
       --success: #10b981;
       --danger: #ef4444;
+      --inversion: #f59e0b;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -30,13 +34,13 @@
       color: var(--text);
       display: flex;
       justify-content: center;
-      padding: 1rem;
+      padding: 1.5rem 1rem;
       min-height: 100vh;
     }
 
     .container {
       width: 100%;
-      max-width: 480px;
+      max-width: 1100px;
       margin: 0 auto;
     }
 
@@ -44,7 +48,7 @@
       background: var(--card-bg);
       border-radius: 16px;
       padding: 1.5rem;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
       border: 1px solid var(--border);
       margin-bottom: 1.5rem;
     }
@@ -52,27 +56,40 @@
     .hidden { display: none !important; }
 
     /* Headers & Text */
-    h2 { font-size: 1.4rem; margin-bottom: 0.5rem; font-weight: 700; }
-    h3 { font-size: 1.1rem; margin-bottom: 1rem; font-weight: 600; }
+    h2 { font-size: 1.3rem; font-weight: 700; }
+    h3 { font-size: 1.05rem; margin-bottom: 1rem; font-weight: 600; color: var(--text); }
     
     .header-user {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 1rem;
-      padding-bottom: 1rem;
-      border-bottom: 1px solid var(--border);
+    }
+
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
     }
 
     /* Forms & Inputs */
-    .form-group { margin-bottom: 1rem; }
-    label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.3rem; color: var(--text-muted); }
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 0.8rem;
+    }
+
+    .form-group { margin-bottom: 0.8rem; }
+    label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.3rem; color: var(--text-muted); }
     input, select {
       width: 100%;
-      padding: 0.75rem;
+      padding: 0.65rem;
       border: 1px solid var(--border);
       border-radius: 10px;
-      font-size: 1rem;
+      font-size: 0.9rem;
       background: #f8fafc;
       outline: none;
     }
@@ -86,12 +103,11 @@
       color: white;
       border: none;
       border-radius: 10px;
-      font-size: 1rem;
+      font-size: 0.95rem;
       font-weight: 600;
       cursor: pointer;
-      transition: background 0.2s;
+      margin-top: 0.5rem;
     }
-    .btn:active { opacity: 0.9; }
     .btn-secondary {
       background-color: transparent;
       color: var(--danger);
@@ -101,24 +117,34 @@
       width: auto;
     }
 
-    /* Dashboard Widgets */
+    /* Summary Widgets */
     .summary-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 0.5rem;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 0.8rem;
       margin-bottom: 1.5rem;
       text-align: center;
     }
     .summary-card {
-      background: #f8fafc;
-      padding: 0.8rem 0.4rem;
+      background: #ffffff;
+      padding: 1rem 0.5rem;
       border-radius: 12px;
       border: 1px solid var(--border);
     }
     .summary-card span { font-size: 0.75rem; color: var(--text-muted); display: block; }
-    .summary-card strong { font-size: 0.95rem; display: block; margin-top: 0.2rem; }
-    .text-success { color: var(--success); }
-    .text-danger { color: var(--danger); }
+    .summary-card strong { font-size: 1.1rem; display: block; margin-top: 0.2rem; }
+
+    /* Charts Grid */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.5rem;
+    }
+    .chart-box {
+      position: relative;
+      height: 260px;
+      width: 100%;
+    }
 
     /* Transaction List */
     .item-list { list-style: none; }
@@ -126,29 +152,35 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 0.8rem 0;
+      padding: 0.75rem 0;
       border-bottom: 1px solid var(--border);
     }
     .item:last-child { border-bottom: none; }
-    .item-info p { font-weight: 600; font-size: 0.95rem; }
+    .item-info p { font-weight: 600; font-size: 0.9rem; }
     .item-info small { color: var(--text-muted); font-size: 0.75rem; }
-    .item-amount { text-align: right; }
+    
+    .badge {
+      display: inline-block;
+      padding: 0.15rem 0.4rem;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      margin-left: 0.3rem;
+    }
+    .badge-casa { background: #f3e8ff; color: #7e22ce; }
+    .badge-estudio { background: #e0f2fe; color: #0369a1; }
+    .badge-inversion { background: #fef3c7; color: #b45309; }
+    .badge-fuente { background: #e2e8f0; color: #334155; }
+
     .delete-btn {
-      background: none;
-      border: none;
-      color: #94a3b8;
-      cursor: pointer;
-      font-size: 1.1rem;
-      margin-left: 0.5rem;
+      background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 1rem; margin-left: 0.8rem;
     }
     .delete-btn:hover { color: var(--danger); }
     
-    .error-msg {
-      color: var(--danger);
-      font-size: 0.85rem;
-      margin-top: 0.5rem;
-      text-align: center;
-    }
+    .text-success { color: var(--success); }
+    .text-danger { color: var(--danger); }
+    .text-inversion { color: var(--inversion); }
+    .error-msg { color: var(--danger); font-size: 0.85rem; margin-top: 0.5rem; text-align: center; }
   </style>
 </head>
 <body>
@@ -156,9 +188,9 @@
   <div class="container">
 
     <!-- 1. PANTALLA DE LOGIN -->
-    <div id="login-screen" class="card">
+    <div id="login-screen" class="card" style="max-width: 400px; margin: 2rem auto;">
       <h2>🔒 Acceso Privado</h2>
-      <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">Ingresá tus credenciales para administrar los gastos.</p>
+      <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">Gestor Financiero & Dashboard Analytics</p>
       
       <form id="login-form">
         <div class="form-group">
@@ -174,11 +206,11 @@
       </form>
     </div>
 
-    <!-- 2. PANTALLA PRINCIPAL (Oculta hasta iniciar sesión) -->
+    <!-- 2. PANTALLA PRINCIPAL -->
     <div id="app-screen" class="hidden">
       
-      <!-- User Header -->
-      <div class="card header-user" style="padding: 1rem 1.5rem; margin-bottom: 1rem;">
+      <!-- Header de Usuario -->
+      <div class="card header-user">
         <div>
           <span style="font-size: 0.75rem; color: var(--text-muted);">Sesión iniciada:</span>
           <p id="user-email-display" style="font-weight: 600; font-size: 0.85rem;"></p>
@@ -186,42 +218,138 @@
         <button id="logout-btn" class="btn btn-secondary">Salir</button>
       </div>
 
-      <!-- Resumen Financiero -->
+      <!-- Barra de Filtros Retroactivos / Mensuales -->
+      <div class="card toolbar">
+        <div>
+          <strong style="font-size: 0.95rem;">📅 Período de Análisis:</strong>
+          <span style="font-size: 0.8rem; color: var(--text-muted); display: block;">Filtra métricas y gráficos en tiempo real</span>
+        </div>
+        <div style="min-width: 200px;">
+          <select id="filtro-periodo">
+            <option value="TODOS">Histórico Completo (Retroactivo)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Indicadores Clave (KPIs) -->
       <div class="summary-grid">
         <div class="summary-card">
           <span>Ingresos</span>
           <strong id="total-ingresos" class="text-success">$0</strong>
         </div>
         <div class="summary-card">
-          <span>Gastos</span>
+          <span>Gastos Totales</span>
           <strong id="total-gastos" class="text-danger">$0</strong>
         </div>
         <div class="summary-card">
-          <span>Balance</span>
+          <span>Inversiones 📈</span>
+          <strong id="total-inversiones" class="text-inversion">$0</strong>
+        </div>
+        <div class="summary-card">
+          <span>Balance Neto</span>
           <strong id="total-balance">$0</strong>
+        </div>
+        <div class="summary-card">
+          <span>Tasa de Cap. / Ahorro</span>
+          <strong id="tasa-ahorro" style="color: var(--primary);">0%</strong>
+        </div>
+      </div>
+
+      <!-- PANEL DE GRÁFICOS ANALÍTICOS -->
+      <div class="charts-grid">
+        <!-- Gráfico 1: Gastos por Categoría -->
+        <div class="card">
+          <h3>🛒 Gastos por Categoría</h3>
+          <div class="chart-box">
+            <canvas id="chartCategoria"></canvas>
+          </div>
+        </div>
+
+        <!-- Gráfico 2: Medio de Pago / Fuente -->
+        <div class="card">
+          <h3>💳 Gastos por Fuente de Pago</h3>
+          <div class="chart-box">
+            <canvas id="chartFuente"></canvas>
+          </div>
+        </div>
+
+        <!-- Gráfico 3: Casa vs Estudio vs Inversión -->
+        <div class="card">
+          <h3>🏡 vs ⚖️ Distribución por Ámbito</h3>
+          <div class="chart-box">
+            <canvas id="chartAmbito"></canvas>
+          </div>
+        </div>
+
+        <!-- Gráfico 4: Evolución Mensual Retroactiva -->
+        <div class="card">
+          <h3>📈 Comparativa Histórica (Mensual)</h3>
+          <div class="chart-box">
+            <canvas id="chartEvolucion"></canvas>
+          </div>
         </div>
       </div>
 
       <!-- Formulario para Cargar Movimientos -->
       <div class="card">
-        <h3>➕ Nuevo Movimiento</h3>
+        <h3>➕ Registrar Nuevo Movimiento</h3>
         <form id="transaction-form">
           <div class="form-group">
             <label for="concepto">Descripción / Concepto</label>
-            <input type="text" id="concepto" placeholder="Ej: Supermercado, Sueldo" required>
+            <input type="text" id="concepto" placeholder="Ej: Honorarios Profarcor, Supermercado, Alquiler" required>
           </div>
           
-          <div style="display: flex; gap: 0.5rem;">
-            <div class="form-group" style="flex: 1;">
+          <div class="form-grid">
+            <div class="form-group">
               <label for="monto">Monto ($)</label>
               <input type="number" id="monto" step="0.01" placeholder="0.00" required>
             </div>
-            <div class="form-group" style="flex: 1;">
+
+            <div class="form-group">
               <label for="tipo">Tipo</label>
               <select id="tipo">
                 <option value="gasto">Gasto</option>
                 <option value="ingreso">Ingreso</option>
+                <option value="inversion">Inversión 📈</option>
               </select>
+            </div>
+
+            <div class="form-group">
+              <label for="ambito">Ámbito</label>
+              <select id="ambito">
+                <option value="Casa">Casa 🏡</option>
+                <option value="Estudio">Estudio ⚖️</option>
+                <option value="Inversiones">Inversión 📈</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="categoria">Categoría</label>
+              <select id="categoria">
+                <option value="Servicios/Impuestos">Servicios & Impuestos</option>
+                <option value="Supermercado/Comida">Supermercado & Comida</option>
+                <option value="Honorarios/Clientes">Honorarios & Clientes</option>
+                <option value="Alquiler/Mantenimiento">Alquiler & Mantenimiento</option>
+                <option value="Vehículo/Transporte">Vehículo & Transporte</option>
+                <option value="Salud/Seguros">Salud & Seguros</option>
+                <option value="Inversiones/Ahorro">Inversiones & Ahorro</option>
+                <option value="Varios">Varios</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="fuente">Fuente / Medio de Pago</label>
+              <select id="fuente">
+                <option value="Banco / Transferencia">Banco / Transferencia</option>
+                <option value="Tarjeta de Crédito">Tarjeta de Crédito</option>
+                <option value="Mercado Pago">Mercado Pago</option>
+                <option value="Efectivo">Efectivo</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="fecha">Fecha</label>
+              <input type="date" id="fecha" required>
             </div>
           </div>
 
@@ -243,7 +371,7 @@
 
   <script>
     // ===================================================
-    // ⚙️ 1. CONFIGURACIÓN DE FIREBASE (PEGA TUS CLAVES AQUÍ)
+    // ⚙️ 1. CONFIGURACIÓN DE FIREBASE (CON TUS CLAVES REGISTRADAS)
     // ===================================================
     const firebaseConfig = {
       apiKey: "AIzaSyBG0IB0j3GFn4yRkAyGhHggJkLlh68TIfc",
@@ -255,7 +383,7 @@
       appId: "1:46576248217:web:8ba30eabb61c8ab67d1f08"
     };
 
-    // Inicialización de Firebase
+    // Inicialización
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.database();
@@ -267,12 +395,15 @@
     const loginError = document.getElementById('login-error');
     const logoutBtn = document.getElementById('logout-btn');
     const userEmailDisplay = document.getElementById('user-email-display');
-    
     const transactionForm = document.getElementById('transaction-form');
     const itemList = document.getElementById('item-list');
-    const totalIngresosEl = document.getElementById('total-ingresos');
-    const totalGastosEl = document.getElementById('total-gastos');
-    const totalBalanceEl = document.getElementById('total-balance');
+    const filtroPeriodo = document.getElementById('filtro-periodo');
+    
+    // Fecha por defecto: hoy
+    document.getElementById('fecha').valueAsDate = new Date();
+
+    let rawDataGlobal = [];
+    let charts = {};
 
     // ===================================================
     // 🔐 2. AUTENTICACIÓN
@@ -282,14 +413,13 @@
         loginScreen.classList.add('hidden');
         appScreen.classList.remove('hidden');
         userEmailDisplay.textContent = user.email;
-        escucharMovimientos(); // Conectar DB cuando hay usuario
+        escucharMovimientos();
       } else {
         loginScreen.classList.remove('hidden');
         appScreen.classList.add('hidden');
       }
     });
 
-    // Iniciar Sesión
     loginForm.addEventListener('submit', (e) => {
       e.preventDefault();
       loginError.classList.add('hidden');
@@ -297,118 +427,230 @@
       const password = document.getElementById('password').value;
 
       auth.signInWithEmailAndPassword(email, password)
-        .catch((error) => {
+        .catch(() => {
           loginError.textContent = "Error: Email o contraseña incorrectos.";
           loginError.classList.remove('hidden');
         });
     });
 
-    // Cerrar Sesión
-    logoutBtn.addEventListener('click', () => {
-      auth.signOut();
+    logoutBtn.addEventListener('click', () => auth.signOut());
+
+    // Auto-completar opciones al cambiar el tipo de movimiento
+    document.getElementById('tipo').addEventListener('change', (e) => {
+      const val = e.target.value;
+      if (val === 'inversion') {
+        document.getElementById('ambito').value = 'Inversiones';
+        document.getElementById('categoria').value = 'Inversiones/Ahorro';
+      } else if (val === 'ingreso') {
+        document.getElementById('categoria').value = 'Honorarios/Clientes';
+      }
     });
 
     // ===================================================
-    // 💾 3. BASE DE DATOS Y LÓGICA DE MOVIMIENTOS
+    // 💾 3. BASE DE DATOS Y LÓGICA DE PROCESAMIENTO
     // ===================================================
 
-    // Guardar nuevo movimiento
     transactionForm.addEventListener('submit', (e) => {
       e.preventDefault();
 
-      const concepto = document.getElementById('concepto').value;
-      const monto = parseFloat(document.getElementById('monto').value);
-      const tipo = document.getElementById('tipo').value;
-      const fecha = new Date().toLocaleDateString('es-AR');
-
       const nuevoMovimiento = {
-        concepto,
-        monto,
-        tipo,
-        fecha,
+        concepto: document.getElementById('concepto').value,
+        monto: parseFloat(document.getElementById('monto').value),
+        tipo: document.getElementById('tipo').value,
+        ambito: document.getElementById('ambito').value,
+        categoria: document.getElementById('categoria').value,
+        fuente: document.getElementById('fuente').value,
+        fecha: document.getElementById('fecha').value,
         usuario: auth.currentUser.email,
         timestamp: firebase.database.ServerValue.TIMESTAMP
       };
 
-      // Guardar en la rama 'libroMayor_v2' (protegida por tus reglas)
       db.ref('libroMayor_v2').push(nuevoMovimiento)
         .then(() => {
-          transactionForm.reset();
+          document.getElementById('concepto').value = '';
+          document.getElementById('monto').value = '';
         })
-        .catch((err) => {
-          alert("Error al guardar: Verificá tus permisos de Firebase.");
-        });
+        .catch((err) => alert("Error al guardar: Verificá tus permisos de Firebase."));
     });
 
-    // Leer movimientos en tiempo real
     function escucharMovimientos() {
-      db.ref('libroMayor_v2').orderByChild('timestamp').on('value', (snapshot) => {
-        itemList.innerHTML = '';
-        let totalIngresos = 0;
-        let totalGastos = 0;
-
-        if (!snapshot.exists()) {
-          itemList.innerHTML = '<li style="text-align: center; color: var(--text-muted); font-size: 0.85rem;">No hay movimientos registrados.</li>';
-          actualizarResumen(0, 0);
-          return;
+      db.ref('libroMayor_v2').orderByChild('fecha').on('value', (snapshot) => {
+        rawDataGlobal = [];
+        if (snapshot.exists()) {
+          snapshot.forEach((child) => {
+            rawDataGlobal.push({ key: child.key, ...child.val() });
+          });
         }
-
-        snapshot.forEach((childSnapshot) => {
-          const key = childSnapshot.key;
-          const item = childSnapshot.val();
-
-          // Sumar Totales
-          if (item.tipo === 'ingreso') {
-            totalIngresos += item.monto;
-          } else {
-            totalGastos += item.monto;
-          }
-
-          // Renderizar Elemento
-          const li = document.createElement('li');
-          li.className = 'item';
-          const esIngreso = item.tipo === 'ingreso';
-
-          li.innerHTML = `
-            <div class="item-info">
-              <p>${item.concepto}</p>
-              <small>${item.fecha} • ${item.usuario.split('@')[0]}</small>
-            </div>
-            <div class="item-amount">
-              <span class="${esIngreso ? 'text-success' : 'text-danger'}" style="font-weight: 700;">
-                ${esIngreso ? '+' : '-'}$${item.monto.toLocaleString('es-AR')}
-              </span>
-              <button class="delete-btn" onclick="eliminarMovimiento('${key}')">✕</button>
-            </div>
-          `;
-
-          // Insertar al inicio de la lista para ver lo más reciente arriba
-          itemList.insertBefore(li, itemList.firstChild);
-        });
-
-        actualizarResumen(totalIngresos, totalGastos);
+        poblarFiltroPeriodos();
+        procesarYRenderizar();
       });
     }
 
-    // Eliminar movimiento
-    window.eliminarMovimiento = function(id) {
+    filtroPeriodo.addEventListener('change', procesarYRenderizar);
+
+    // Carga los meses disponibles automáticamente en el selector
+    function poblarFiltroPeriodos() {
+      const valorSeleccionadoPrevio = filtroPeriodo.value;
+      const periodosUnicos = new Set();
+
+      rawDataGlobal.forEach(item => {
+        if (item.fecha) periodosUnicos.add(item.fecha.substring(0, 7)); // Formato YYYY-MM
+      });
+
+      const periodosOrdenados = Array.from(periodosUnicos).sort().reverse();
+      
+      filtroPeriodo.innerHTML = '<option value="TODOS">Histórico Completo (Retroactivo)</option>';
+      periodosOrdenados.forEach(p => {
+        const option = document.createElement('option');
+        option.value = p;
+        option.textContent = `Mes: ${p}`;
+        filtroPeriodo.appendChild(option);
+      });
+
+      if (valorSeleccionadoPrevio && Array.from(filtroPeriodo.options).some(o => o.value === valorSeleccionadoPrevio)) {
+        filtroPeriodo.value = valorSeleccionadoPrevio;
+      }
+    }
+
+    // Calcula totales y actualiza gráficos
+    function procesarYRenderizar() {
+      const periodoSel = filtroPeriodo.value;
+
+      const datosFiltrados = rawDataGlobal.filter(item => {
+        if (periodoSel === 'TODOS') return true;
+        return item.fecha && item.fecha.startsWith(periodoSel);
+      });
+
+      let ingresos = 0, gastos = 0, inversiones = 0;
+      let gastosPorCat = {}, gastosPorFuente = {}, gastosPorAmbito = { Casa: 0, Estudio: 0, Inversiones: 0 };
+      let evolucionMensual = {};
+
+      itemList.innerHTML = '';
+
+      datosFiltrados.forEach(item => {
+        const monto = item.monto || 0;
+        const tipo = item.tipo || 'gasto';
+        const cat = item.categoria || 'Varios';
+        const fuente = item.fuente || 'Banco / Transferencia';
+        const amb = item.ambito || 'Casa';
+
+        if (tipo === 'ingreso') {
+          ingresos += monto;
+        } else if (tipo === 'inversion' || amb === 'Inversiones') {
+          inversiones += monto;
+          gastosPorAmbito['Inversiones'] += monto;
+        } else {
+          gastos += monto;
+          gastosPorCat[cat] = (gastosPorCat[cat] || 0) + monto;
+          gastosPorFuente[fuente] = (gastosPorFuente[fuente] || 0) + monto;
+          if (gastosPorAmbito[amb] !== undefined) gastosPorAmbito[amb] += monto;
+        }
+
+        renderItemHistorial(item);
+      });
+
+      // Cálculo de Evolución Histórica Retroactiva
+      rawDataGlobal.forEach(item => {
+        const mes = item.fecha ? item.fecha.substring(0, 7) : 'Sin fecha';
+        if (!evolucionMensual[mes]) evolucionMensual[mes] = { ingresos: 0, gastos: 0, inversiones: 0 };
+        
+        if (item.tipo === 'ingreso') evolucionMensual[mes].ingresos += item.monto;
+        else if (item.tipo === 'inversion' || item.ambito === 'Inversiones') evolucionMensual[mes].inversiones += item.monto;
+        else evolucionMensual[mes].gastos += item.monto;
+      });
+
+      // Render Totales & KPIs
+      const balance = ingresos - gastos - inversiones;
+      const tasaAhorro = ingresos > 0 ? ((inversiones / ingresos) * 100).toFixed(1) : 0;
+
+      document.getElementById('total-ingresos').textContent = `$${ingresos.toLocaleString('es-AR')}`;
+      document.getElementById('total-gastos').textContent = `$${gastos.toLocaleString('es-AR')}`;
+      document.getElementById('total-inversiones').textContent = `$${inversiones.toLocaleString('es-AR')}`;
+      
+      const balEl = document.getElementById('total-balance');
+      balEl.textContent = `$${balance.toLocaleString('es-AR')}`;
+      balEl.className = balance < 0 ? 'text-danger' : 'text-success';
+      
+      document.getElementById('tasa-ahorro').textContent = `${tasaAhorro}%`;
+
+      // Render Gráficos
+      renderChart('chartCategoria', 'doughnut', Object.keys(gastosPorCat), Object.values(gastosPorCat), ['#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899', '#64748b']);
+      renderChart('chartFuente', 'pie', Object.keys(gastosPorFuente), Object.values(gastosPorFuente), ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6']);
+      renderChart('chartAmbito', 'doughnut', ['Casa 🏡', 'Estudio ⚖️', 'Inversión 📈'], [gastosPorAmbito.Casa, gastosPorAmbito.Estudio, gastosPorAmbito.Inversiones], ['#8b5cf6', '#06b6d4', '#f59e0b']);
+      
+      renderChartEvolucion(evolucionMensual);
+    }
+
+    function renderItemHistorial(item) {
+      const li = document.createElement('li');
+      li.className = 'item';
+      
+      let badgeClass = item.ambito === 'Estudio' ? 'badge-estudio' : (item.ambito === 'Inversiones' ? 'badge-inversion' : 'badge-casa');
+      let esIngreso = item.tipo === 'ingreso';
+      let esInversion = item.tipo === 'inversion' || item.ambito === 'Inversiones';
+
+      let colorClass = esIngreso ? 'text-success' : (esInversion ? 'text-inversion' : 'text-danger');
+      let signo = esIngreso ? '+' : (esInversion ? '📈 ' : '-');
+
+      li.innerHTML = `
+        <div class="item-info">
+          <p>${item.concepto} <span class="badge ${badgeClass}">${item.ambito || 'Casa'}</span> <span class="badge badge-fuente">${item.fuente || 'Banco'}</span></p>
+          <small>${item.fecha} • ${item.categoria || 'Varios'} • ${item.usuario ? item.usuario.split('@')[0] : ''}</small>
+        </div>
+        <div>
+          <span class="${colorClass}" style="font-weight: 700;">
+            ${signo}$${item.monto.toLocaleString('es-AR')}
+          </span>
+          <button class="delete-btn" onclick="eliminarMovimiento('${item.key}')">✕</button>
+        </div>
+      `;
+      itemList.insertBefore(li, itemList.firstChild);
+    }
+
+    window.eliminarMovimiento = (id) => {
       if (confirm("¿Querés borrar este movimiento?")) {
         db.ref(`libroMayor_v2/${id}`).remove();
       }
     };
 
-    // Actualizar Widgets superiores
-    function actualizarResumen(ingresos, gastos) {
-      const balance = ingresos - gastos;
-      totalIngresosEl.textContent = `$${ingresos.toLocaleString('es-AR')}`;
-      totalGastosEl.textContent = `$${gastos.toLocaleString('es-AR')}`;
-      totalBalanceEl.textContent = `$${balance.toLocaleString('es-AR')}`;
+    function renderChart(canvasId, type, labels, data, colors) {
+      const ctx = document.getElementById(canvasId).getContext('2d');
+      if (charts[canvasId]) charts[canvasId].destroy();
 
-      if (balance < 0) {
-        totalBalanceEl.className = 'text-danger';
-      } else {
-        totalBalanceEl.className = 'text-success';
-      }
+      charts[canvasId] = new Chart(ctx, {
+        type: type,
+        data: {
+          labels: labels.length ? labels : ['Sin datos'],
+          datasets: [{
+            data: data.length ? data : [1],
+            backgroundColor: colors
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    }
+
+    function renderChartEvolucion(evolucionMensual) {
+      const ctx = document.getElementById('chartEvolucion').getContext('2d');
+      if (charts['chartEvolucion']) charts['chartEvolucion'].destroy();
+
+      const meses = Object.keys(evolucionMensual).sort();
+      const ingresos = meses.map(m => evolucionMensual[m].ingresos);
+      const gastos = meses.map(m => evolucionMensual[m].gastos);
+      const inversiones = meses.map(m => evolucionMensual[m].inversiones);
+
+      charts['chartEvolucion'] = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: meses,
+          datasets: [
+            { label: 'Ingresos', data: ingresos, backgroundColor: '#10b981' },
+            { label: 'Gastos', data: gastos, backgroundColor: '#ef4444' },
+            { label: 'Inversiones', data: inversiones, backgroundColor: '#f59e0b' }
+          ]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
     }
   </script>
 </body>
