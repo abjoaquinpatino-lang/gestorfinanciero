@@ -53,6 +53,8 @@
       box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
       border: 1px solid var(--border);
       margin-bottom: 1.25rem;
+      position: relative;
+      z-index: 1;
     }
 
     .hidden { display: none !important; }
@@ -100,10 +102,17 @@
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
       gap: 0.75rem;
+      position: relative;
+      z-index: 10;
     }
 
-    .form-group { margin-bottom: 0.6rem; }
+    .form-group { 
+      margin-bottom: 0.6rem; 
+      position: relative;
+    }
+
     label { display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.25rem; color: var(--text-muted); }
+    
     input, select {
       width: 100%;
       padding: 0.6rem;
@@ -112,6 +121,8 @@
       font-size: 0.88rem;
       background: #f8fafc;
       outline: none;
+      position: relative;
+      z-index: 5;
     }
     input:focus, select:focus { border-color: var(--primary); background: #fff; }
 
@@ -127,6 +138,8 @@
       font-weight: 600;
       cursor: pointer;
       margin-top: 0.5rem;
+      position: relative;
+      z-index: 1;
     }
 
     /* KPIs */
@@ -297,7 +310,7 @@
         <form id="transaction-form">
           <div class="form-group">
             <label for="concepto">Descripción / Detalle</label>
-            <input type="text" id="concepto" placeholder="Ej: Supermercado, Alquiler, Deuda / A percibir" required>
+            <input type="text" id="concepto" placeholder="Ej: Supermercado, Alquiler, Préstamo" required>
           </div>
           
           <div class="form-grid">
@@ -321,7 +334,7 @@
                 <option value="Casa">Casa 🏡</option>
                 <option value="Estudio">Estudio ⚖️</option>
                 <option value="Inversiones">Inversión 📈</option>
-                <option value="Deuda">Deuda / A percibir 💳</option>
+                <option value="Deuda">Deuda 💳</option>
               </select>
             </div>
 
@@ -428,7 +441,7 @@
           </div>
         </div>
 
-        <!-- 7. Deudas Vigentes (Panel Directo Multi-Moneda con A Pagar / A Cobrar) -->
+        <!-- 7. Deudas Vigentes -->
         <div class="card">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
             <h3 style="margin-bottom: 0;">7. Deudas y A Percibir Vigentes 💳</h3>
@@ -536,14 +549,14 @@
         groupFuente.classList.add('hidden');
         
         tipoSelect.innerHTML = `
-          <option value="deuda_pagar">🔴 Deuda a Pagar (Debo)</option>
-          <option value="deuda_cobrar">🟢 Deuda / A percibir (Me deben)</option>
+          <option value="deuda_pagar">Deuda a cobrar</option>
+          <option value="deuda_cobrar">Deuda a percibir</option>
         `;
         return;
       } else {
         groupTipo.classList.remove('hidden');
         groupCategoria.classList.remove('hidden');
-        if (tipoSelect.innerHTML.includes('deuda_pagar')) {
+        if (tipoSelect.innerHTML.includes('Deuda a cobrar')) {
           tipoSelect.innerHTML = `
             <option value="gasto">Gasto</option>
             <option value="ingreso">Ingreso</option>
@@ -1012,7 +1025,7 @@
       if (deudasPagar.length > 0) {
         const titlePagar = document.createElement('li');
         titlePagar.style.cssText = 'font-size: 0.78rem; font-weight: 700; color: var(--deuda); margin-top: 0.2rem; margin-bottom: 0.3rem; text-transform: uppercase;';
-        titlePagar.textContent = '🔴 Deudas a Pagar (Debo)';
+        titlePagar.textContent = '🔴 Deuda a cobrar';
         ul.appendChild(titlePagar);
 
         deudasPagar.forEach(item => {
@@ -1034,7 +1047,7 @@
       if (deudasCobrar.length > 0) {
         const titleCobrar = document.createElement('li');
         titleCobrar.style.cssText = 'font-size: 0.78rem; font-weight: 700; color: var(--cobrar); margin-top: 0.6rem; margin-bottom: 0.3rem; text-transform: uppercase;';
-        titleCobrar.textContent = '🟢 Deuda / A Percibir (Nos deben)';
+        titleCobrar.textContent = '🟢 Deuda a percibir';
         ul.appendChild(titleCobrar);
 
         deudasCobrar.forEach(item => {
